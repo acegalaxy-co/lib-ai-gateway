@@ -71,6 +71,15 @@
       },
       "maxOutputTokens": 1,
       "dailyTokenQuota": 10000000
+    },
+    "sensitive-audit.classify": {
+      "_doc": "Tier 2 detector for sensitive-data audit. 1 LLM call per ambiguous page/file (regex confidence 0.55-0.7). Daily scope: up to MAX_NOTION_PAGES + MAX_DRIVE_FILES (500+500=1000). Conservative quota (1M tokens/day) covers worst case.",
+      "tiers": {
+        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 30000 },
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 60000 }
+      },
+      "maxOutputTokens": 8,
+      "dailyTokenQuota": 1000000
     }
   }
 }
