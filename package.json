@@ -1,0 +1,21 @@
+{
+  "name": "@nexus/ai-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "In-repo runtime LLM call gateway (5-layer default-deny). Mirrors @nexus/ott-gateway pattern: skill-scoped authz, token budget, circuit breaker, append-only audit. Phase 1: anthropic-api adapter only.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && npm run copy-assets",
+    "copy-assets": "mkdir -p dist/authz && cp authz/policies.json dist/authz/policies.json",
+    "clean": "rm -rf dist",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^20.0.0"
+  }
+}

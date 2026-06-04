@@ -1,0 +1,66 @@
+{
+  "_doc": "skill -> { tiers: { fast|balanced|deep: { provider, model, ...extras } }, maxOutputTokens, dailyTokenQuota }. Provider-specific extras: openai-compat/openai-embeddings → baseUrl + apiKeyEnv. anthropic-cli → timeoutMs? + allowedTools? (CSV). anthropic-api → none (key from env). Embed skills should bind provider='openai-embeddings' on any tier; dispatchEmbed() reads them.",
+  "skills": {
+    "*": {
+      "tiers": {
+        "fast":     { "provider": "openai-compat", "model": "gemini-2.5-flash", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai", "apiKeyEnv": "NEXUS_GOOGLE_API_KEY" },
+        "balanced": { "provider": "openai-compat", "model": "deepseek-v4-flash", "baseUrl": "https://api.deepseek.com/v1", "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY" },
+        "deep":     { "provider": "anthropic-api", "model": "claude-opus-4-7" }
+      },
+      "maxOutputTokens": 4096,
+      "dailyTokenQuota": 200000
+    },
+    "invoice-enrich.summarize": {
+      "tiers": {
+        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5", "timeoutMs": 90000 },
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 90000 }
+      },
+      "maxOutputTokens": 2048,
+      "dailyTokenQuota": 500000
+    },
+    "invoice-enrich.extract-parties": {
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 120000 },
+        "deep":     { "provider": "anthropic-api", "model": "claude-opus-4-7" }
+      },
+      "maxOutputTokens": 2048,
+      "dailyTokenQuota": 500000
+    },
+    "kane.ai-news-brief": {
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 120000, "allowedTools": "WebSearch" }
+      },
+      "maxOutputTokens": 4096,
+      "dailyTokenQuota": 200000
+    },
+    "invoice-enrich.classify": {
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 180000, "allowedTools": "Read" }
+      },
+      "maxOutputTokens": 2048,
+      "dailyTokenQuota": 500000
+    },
+    "invoice-enrich.scan": {
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 90000 }
+      },
+      "maxOutputTokens": 2048,
+      "dailyTokenQuota": 500000
+    },
+    "legacy.claude-cli": {
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 90000 }
+      },
+      "maxOutputTokens": 4096,
+      "dailyTokenQuota": 200000
+    },
+    "rag.embed": {
+      "tiers": {
+        "fast":     { "provider": "openai-embeddings", "model": "text-embedding-3-small", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "NEXUS_OPENAI_API_KEY" },
+        "balanced": { "provider": "openai-embeddings", "model": "text-embedding-3-large", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "NEXUS_OPENAI_API_KEY" }
+      },
+      "maxOutputTokens": 1,
+      "dailyTokenQuota": 10000000
+    }
+  }
+}

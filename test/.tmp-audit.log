@@ -1,0 +1,2 @@
+{"ts":"2026-06-04T02:33:27.503Z","skill":"","tier":"balanced","provider":null,"model":null,"tokensIn":0,"tokensOut":0,"outcome":"deny","denyReason":"L2_authz","latencyMs":0}
+{"ts":"2026-06-04T02:33:27.504Z","skill":"invoice-enrich.summarize","tier":"deep","provider":null,"model":null,"tokensIn":0,"tokensOut":0,"outcome":"deny","denyReason":"L2_authz","latencyMs":0}
