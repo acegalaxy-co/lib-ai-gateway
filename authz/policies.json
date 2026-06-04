@@ -54,6 +54,16 @@
       "maxOutputTokens": 4096,
       "dailyTokenQuota": 200000
     },
+    "nexus.chat": {
+      "_doc": "Phase 4: catch-all chat skill for src/app/llm/client.ts. Tier name encodes Nexus tier (budget/standard/analysis) — client.ts:selectModel passes the tier label here, gateway resolves provider+model via binding. Caller-supplied model overrides binding via authzResult passthrough.",
+      "tiers": {
+        "fast":     { "provider": "openai-compat",  "model": "gemini-2.5-flash", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai", "apiKeyEnv": "NEXUS_GOOGLE_API_KEY" },
+        "balanced": { "provider": "openai-compat",  "model": "deepseek-v4-flash", "baseUrl": "https://api.deepseek.com/v1", "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY" },
+        "deep":     { "provider": "anthropic-api",  "model": "claude-sonnet-4-6" }
+      },
+      "maxOutputTokens": 4096,
+      "dailyTokenQuota": 2000000
+    },
     "rag.embed": {
       "tiers": {
         "fast":     { "provider": "openai-embeddings", "model": "text-embedding-3-small", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "NEXUS_OPENAI_API_KEY" },

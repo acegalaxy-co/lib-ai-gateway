@@ -21,10 +21,40 @@ type DenyReason =
   | "L4_circuit_open"
   | "L5_audit_fatal";
 
+interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string | Array<Record<string, unknown>>;
+}
+
+interface ToolSpec {
+  name: string;
+  description?: string;
+  input_schema?: Record<string, unknown>;
+}
+
+interface ModelOverride {
+  provider: "anthropic-api" | "openai-compat" | string;
+  model: string;
+  baseUrl?: string;
+  apiKeyEnv?: string;
+}
+
 interface AICallRequest {
   skill: string;
   tier: Tier;
-  prompt: string;
+  // Prompt-mode (Phase 1-3): single user prompt.
+  prompt?: string;
+  // Chat-mode (Phase 4): multi-turn conversation + optional tools + streaming.
+  messages?: ChatMessage[];
+  systemPrompt?: string;
+  tools?: ToolSpec[];
+  onDelta?: (text: string) => void;
+  // Phase 4 — runtime model override. When set, replaces the policy tier
+  // binding for provider/model/baseUrl/apiKeyEnv (skill quota + budget guard
+  // still apply). Used by src/app/llm/client.ts where model is picked dynamically
+  // per-query via selectModel() + Notion-loaded MODELS registry.
+  modelOverride?: ModelOverride;
+
   schema?: Record<string, unknown> | null;
   maxOutputTokens?: number;
   metadata?: Record<string, unknown>;
@@ -40,6 +70,9 @@ interface AICallResponse {
   tokensIn: number;
   tokensOut: number;
   latencyMs: number;
+  // Chat-mode tool-use extras (null otherwise):
+  needsToolExecution?: boolean;
+  response?: Record<string, unknown> | null;
 }
 
 interface OutcomeRecord {
@@ -110,6 +143,8 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
     tokensIn: 0,
     tokensOut: 0,
     latencyMs: 0,
+    needsToolExecution: false,
+    response: null,
   };
 
   let reservationId: string | null = null;
@@ -127,6 +162,14 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
       outcome.denyReason = "L2_authz";
       resp.denyReason = "L2_authz";
       return await _finalize(resp, outcome, started);
+    }
+    // Apply runtime model override (Phase 4) — caller picks model dynamically.
+    // Quota/budget still enforced under the skill, but provider+model swap is allowed.
+    if (req.modelOverride && req.modelOverride.provider && req.modelOverride.model) {
+      authzResult.provider = req.modelOverride.provider;
+      authzResult.model = req.modelOverride.model;
+      if (req.modelOverride.baseUrl) authzResult.baseUrl = req.modelOverride.baseUrl;
+      if (req.modelOverride.apiKeyEnv) authzResult.apiKeyEnv = req.modelOverride.apiKeyEnv;
     }
     provider = authzResult.provider;
     outcome.provider = provider;
@@ -150,12 +193,28 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
       return await _finalize(resp, outcome, started);
     }
 
-    // L3 — Budget reserve (estimate from prompt length + maxOutputTokens cap).
+    // L3 — Budget reserve (estimate from prompt/messages length + maxOutputTokens cap).
     const maxOut = Math.min(
       req.maxOutputTokens || authzResult.maxOutputTokens,
       authzResult.maxOutputTokens
     );
-    const estIn = adapter.estimateTokens(req.prompt || "");
+    // For chat-mode, concat all message content to estimate input tokens.
+    let estIn = 0;
+    if (Array.isArray(req.messages) && req.messages.length > 0) {
+      let buf = req.systemPrompt || "";
+      for (const m of req.messages) {
+        if (typeof m.content === "string") buf += "\n" + m.content;
+        else if (Array.isArray(m.content)) {
+          for (const b of m.content) {
+            const text = (b as any).text || (b as any).content || "";
+            if (typeof text === "string") buf += "\n" + text;
+          }
+        }
+      }
+      estIn = adapter.estimateTokens(buf);
+    } else {
+      estIn = adapter.estimateTokens(req.prompt || "");
+    }
     const estimatedTotal = estIn + maxOut;
     const reserveResult = await budget.reserve(req.skill, estimatedTotal, authzResult.dailyTokenQuota);
     if (!reserveResult.ok) {
@@ -170,6 +229,10 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
     try {
       adapterResp = await adapter.complete({
         prompt: req.prompt,
+        messages: req.messages,
+        systemPrompt: req.systemPrompt,
+        tools: req.tools,
+        onDelta: req.onDelta,
         model: authzResult.model,
         maxOutputTokens: maxOut,
         schema: req.schema || null,
@@ -209,6 +272,13 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
     resp.schemaJson = adapterResp.schemaJson;
     resp.tokensIn = adapterResp.tokensIn || 0;
     resp.tokensOut = adapterResp.tokensOut || 0;
+    // Chat-mode passthrough.
+    if (adapterResp.needsToolExecution !== undefined) {
+      resp.needsToolExecution = adapterResp.needsToolExecution;
+    }
+    if (adapterResp.response !== undefined) {
+      resp.response = adapterResp.response;
+    }
 
     return await _finalize(resp, outcome, started);
   } catch (err: unknown) {
