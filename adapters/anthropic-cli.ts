@@ -7,9 +7,15 @@
 //
 // Token usage: CLI does not return per-call token counts. We estimate from
 // prompt + output length so budget guard still gets a signal.
+//
+// Limit detection: pre-check cooldown before spawn; parse stderr reactively
+// for session_5h / weekly_7d / rate_limit. Throw ClaudeCliLimitError on hit.
 
 const { spawn } = require("child_process");
 const { IAIAdapter } = require("./adapter-interface");
+const limitState = require("../lib/claude-limit/state");
+const { detectClaudeLimit } = require("../lib/claude-limit/detect");
+const { ClaudeCliLimitError } = require("../lib/claude-limit/error");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 
@@ -18,6 +24,7 @@ interface AdapterCompleteRequest {
   model: string;                // unused — CLI picks subscription default
   maxOutputTokens: number;      // unused — CLI doesn't accept a cap
   schema?: Record<string, unknown> | null;
+  skill?: string;               // optional; used for limit tracking
   // anthropic-cli extras (from policy binding):
   timeoutMs?: number;
   allowedTools?: string;        // CSV, empty = no tools
@@ -49,6 +56,18 @@ class AnthropicCLIAdapter extends IAIAdapter {
   async complete(req: AdapterCompleteRequest): Promise<AdapterCompleteResponse> {
     const timeout = req.timeoutMs || DEFAULT_TIMEOUT_MS;
     const allowedTools = req.allowedTools || "";
+    const skill = req.skill || "unknown";
+
+    // Pre-check: if skill is in cooldown, throw error immediately (avoid spawn).
+    const skipCheck = limitState.shouldSkip(skill);
+    if (skipCheck.skip) {
+      throw new ClaudeCliLimitError(skill, {
+        kind: skipCheck.kind,
+        resetAt: skipCheck.resetAt,
+        raw: "cooldown active",
+      });
+    }
+
     // Strip null bytes — spawn() rejects null in argv. PDF text may contain \x00.
     const cleanPrompt = String(req.prompt).replace(/\x00/g, "");
 
@@ -70,9 +89,20 @@ class AnthropicCLIAdapter extends IAIAdapter {
       child.on("error", (e: Error) => reject(new Error(`spawn failed: ${e.message}`)));
       child.on("close", (code: number | null, signal: string | null) => {
         if (signal) return reject(new Error(`claude killed (${signal}) — timeout?`));
-        if (code !== 0) return reject(new Error(`claude exit ${code}: ${err.slice(0, 300)}`));
+        if (code !== 0) {
+          // Try to detect limit hit from stderr.
+          const match = detectClaudeLimit(err);
+          if (match) {
+            limitState.markLimitHit(skill, match);
+            return reject(new ClaudeCliLimitError(skill, match));
+          }
+          // Generic error.
+          return reject(new Error(`claude exit ${code}: ${err.slice(0, 300)}`));
+        }
         const trimmed = out.trim();
         if (!trimmed) return reject(new Error("claude returned empty output"));
+        // Success — clear any prior cooldown for this skill.
+        limitState.clearLimit(skill);
         resolve(trimmed);
       });
     });

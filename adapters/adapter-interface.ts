@@ -39,6 +39,8 @@ interface AdapterCompleteRequest {
   model: string;
   maxOutputTokens: number;
   schema?: Record<string, unknown> | null;
+  // Optional skill identifier — used by anthropic-cli for limit tracking
+  skill?: string;
 }
 
 interface AdapterCompleteResponse {

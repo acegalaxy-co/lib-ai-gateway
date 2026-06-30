@@ -12,6 +12,7 @@ const authz = require("./authz/engine");
 const budget = require("./rate-limit/budget");
 const breaker = require("./rate-limit/circuit-breaker");
 const audit = require("./audit/logger");
+const { ClaudeCliLimitError } = require("./lib/claude-limit/error");
 
 type Tier = "fast" | "balanced" | "deep";
 type DenyReason =
@@ -228,6 +229,7 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
     let adapterResp;
     try {
       adapterResp = await adapter.complete({
+    skill: req.skill,
         prompt: req.prompt,
         messages: req.messages,
         systemPrompt: req.systemPrompt,
@@ -243,6 +245,18 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
       });
       breaker.recordSuccess(provider);
     } catch (err: unknown) {
+      // Check for limit error first (don't treat as circuit failure)
+      if (err instanceof ClaudeCliLimitError) {
+        breaker.recordSuccess(provider);  // Limit is transient, not provider failure
+        if (reservationId) await budget.refund(reservationId);
+        reservationId = null;
+        outcome.denyReason = "L4_circuit_open";  // Semantic: rate-limited
+        resp.denyReason = "L4_circuit_open";
+        // eslint-disable-next-line no-console
+        console.error("[ai-gateway][claude-cli-limit]", err && (err as Error).message);
+        return await _finalize(resp, outcome, started);
+      }
+      // Generic adapter error — treat as provider failure
       breaker.recordFailure(provider as string);
       // Refund reservation since call never billed.
       if (reservationId) await budget.refund(reservationId);
