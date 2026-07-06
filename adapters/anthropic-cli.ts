@@ -28,6 +28,9 @@ interface AdapterCompleteRequest {
   // anthropic-cli extras (from policy binding):
   timeoutMs?: number;
   allowedTools?: string;        // CSV, empty = no tools
+  // MCP server config — loads mcpServers definition for tool_use.
+  // Used by crawler (CloakBrowser) + any skill needing MCP tools.
+  mcpConfigPath?: string;
 }
 
 interface AdapterCompleteResponse {
@@ -75,6 +78,8 @@ class AnthropicCLIAdapter extends IAIAdapter {
       const [cmd, prefix] = _cliInvocation();
       const argv = [...prefix, "--permission-mode", "acceptEdits"];
       if (allowedTools) argv.push("--allowedTools", allowedTools);
+      // MCP config — needed by skills that use MCP tools (crawler CloakBrowser etc.)
+      if (req.mcpConfigPath) argv.push("--mcp-config", req.mcpConfigPath);
       argv.push("-p", cleanPrompt);
 
       const child = spawn(cmd, argv, {

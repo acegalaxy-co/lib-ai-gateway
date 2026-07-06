@@ -59,6 +59,11 @@ interface AICallRequest {
   schema?: Record<string, unknown> | null;
   maxOutputTokens?: number;
   metadata?: Record<string, unknown>;
+  // Optional runtime MCP config path — used by anthropic-cli adapter to load
+  // MCP servers (e.g. CloakBrowser for crawler). Can also be declared per-skill
+  // in policies.json under a tier's `mcpConfigPath` field; this field is a
+  // per-call override for cases where the path is dynamic (crawler sub-git).
+  mcpConfigPath?: string;
 }
 
 interface AICallResponse {
@@ -242,6 +247,8 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
         apiKeyEnv: authzResult.apiKeyEnv,
         timeoutMs: authzResult.timeoutMs,
         allowedTools: authzResult.allowedTools,
+        // MCP config — prefer per-call override, else fall back to policy binding
+        mcpConfigPath: req.mcpConfigPath || authzResult.mcpConfigPath,
       });
       breaker.recordSuccess(provider);
     } catch (err: unknown) {

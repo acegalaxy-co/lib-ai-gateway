@@ -72,6 +72,30 @@
       "maxOutputTokens": 1,
       "dailyTokenQuota": 10000000
     },
+    "crawler.login": {
+      "_doc": "One-time helper for user to login Facebook/Telegram in the CloakBrowser profile. Opens headed browser, waits ~5 min for manual login, closes. Run manually via npm run login:fb / login:tg. Extremely low volume — few calls/month total.",
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" }
+      },
+      "maxOutputTokens": 256,
+      "dailyTokenQuota": 100000
+    },
+    "crawler.join": {
+      "_doc": "Crawler Facebook/Telegram group-join check via CloakBrowser MCP. Cheap: 5-30s + few browser tool calls per channel. Runs ~10-30 channels/day per feature (artist/dev/qaqc/gd) → conservative daily quota.",
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" }
+      },
+      "maxOutputTokens": 256,
+      "dailyTokenQuota": 500000
+    },
+    "crawler.extract": {
+      "_doc": "Crawler post/profile extraction from FB Group/Telegram/Upwork/Fiverr/LinkedIn/Diễn đàn VN via CloakBrowser MCP. 5-30s + browser interaction per keyword-channel pair. High-volume — 4 features × 5 batches × N channels × M keywords.",
+      "tiers": {
+        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" }
+      },
+      "maxOutputTokens": 4096,
+      "dailyTokenQuota": 5000000
+    },
     "sensitive-audit.classify": {
       "_doc": "Tier 2 detector for sensitive-data audit. 1 LLM call per ambiguous page/file (regex confidence 0.55-0.7). Daily scope: up to MAX_NOTION_PAGES + MAX_DRIVE_FILES (500+500=1000). Conservative quota (1M tokens/day) covers worst case.",
       "tiers": {
