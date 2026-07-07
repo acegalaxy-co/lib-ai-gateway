@@ -58,6 +58,27 @@ const result = await dispatchCall({
 
 `dispatchCall` NEVER throws. Always returns `{outcome, denyReason?, text?, tokensIn?, tokensOut?, latencyMs}`.
 
+## Model selection
+
+Priority (high → low):
+
+1. `req.modelOverride` param — caller code picks provider + model
+2. `NEXUS_AI_GATEWAY_MODEL_<SKILL>` env var — skill-specific runtime (Anthropic only)
+3. `NEXUS_AI_GATEWAY_MODEL_DEFAULT` env var — all Anthropic skills fallback
+4. Policy tier binding in `authz/policies.json`
+
+Skill name → env var: uppercase, `.` and `-` → `_`. Example `crawler.extract` → `NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT`.
+
+Env override applies ONLY to Anthropic providers (`anthropic-api`, `anthropic-cli`). Skills bound `openai-compat` (DeepSeek/Gemini) are untouched — cross-provider swap needs `baseUrl` + `apiKeyEnv` which env vars can't carry.
+
+```bash
+# Run crawler with Haiku for one session
+NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-haiku-4-5 npm run start artist-search
+
+# Rollback all Anthropic skills to Sonnet
+NEXUS_AI_GATEWAY_MODEL_DEFAULT=claude-sonnet-4-6 node server.js
+```
+
 ## Files
 
 ```

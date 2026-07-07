@@ -155,3 +155,59 @@ test("anthropic-cli: null bytes in prompt are stripped before spawn", async () =
     assert.ok(!last.includes("\x00"));
   });
 });
+
+// ============================================================
+// 2026-07-07: --model flag support (was previously ignored).
+// Adapter must pass `--model <name>` to CLI when model is non-empty,
+// so policy binding (or env override resolved by dispatchCall) actually
+// takes effect. Empty model → skip flag, CLI falls back to subscription
+// default (backward-compat with earlier callers passing model:"m" etc.).
+// ============================================================
+test("anthropic-cli: model non-empty → --model <name> in argv before -p", async () => {
+  const captured = {};
+  const stub = _makeStub(["ok"], [], 0, null, captured);
+  await _withSpawn(stub, async () => {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const adapter = new AnthropicCLIAdapter();
+    await adapter.complete({
+      prompt: "extract",
+      model: "claude-haiku-4-5",
+      maxOutputTokens: 100,
+    });
+    const idxModel = captured.argv.indexOf("--model");
+    const idxP = captured.argv.indexOf("-p");
+    assert.ok(idxModel > -1, "--model flag must be present when model non-empty");
+    assert.equal(captured.argv[idxModel + 1], "claude-haiku-4-5");
+    assert.ok(idxModel < idxP, "--model must precede -p so prompt isn't swallowed");
+  });
+});
+
+test("anthropic-cli: empty model → --model flag omitted (CLI default)", async () => {
+  const captured = {};
+  const stub = _makeStub(["ok"], [], 0, null, captured);
+  await _withSpawn(stub, async () => {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const adapter = new AnthropicCLIAdapter();
+    await adapter.complete({
+      prompt: "extract",
+      model: "",
+      maxOutputTokens: 100,
+    });
+    assert.equal(captured.argv.indexOf("--model"), -1, "--model must be omitted for empty model");
+  });
+});
+
+test("anthropic-cli: whitespace-only model → --model omitted (treated as empty)", async () => {
+  const captured = {};
+  const stub = _makeStub(["ok"], [], 0, null, captured);
+  await _withSpawn(stub, async () => {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const adapter = new AnthropicCLIAdapter();
+    await adapter.complete({
+      prompt: "extract",
+      model: "   ",
+      maxOutputTokens: 100,
+    });
+    assert.equal(captured.argv.indexOf("--model"), -1, "--model must be omitted for whitespace-only");
+  });
+});

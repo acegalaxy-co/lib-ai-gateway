@@ -21,7 +21,9 @@ const DEFAULT_TIMEOUT_MS = 90_000;
 
 interface AdapterCompleteRequest {
   prompt: string;
-  model: string;                // unused — CLI picks subscription default
+  model: string;                // 2026-07-07: now passed as `--model <name>`
+                                //   when non-empty. Falls back to CLI default
+                                //   (subscription plan default) if empty.
   maxOutputTokens: number;      // unused — CLI doesn't accept a cap
   schema?: Record<string, unknown> | null;
   skill?: string;               // optional; used for limit tracking
@@ -77,6 +79,12 @@ class AnthropicCLIAdapter extends IAIAdapter {
     const text = await new Promise<string>((resolve, reject) => {
       const [cmd, prefix] = _cliInvocation();
       const argv = [...prefix, "--permission-mode", "acceptEdits"];
+      // Model — pass explicit alias/full-name if policy or env override
+      // resolved a value (see gateway _resolveEnvModelOverride). Skip if
+      // empty so CLI keeps subscription default. Supported aliases:
+      // "haiku", "sonnet", "opus", or full IDs like "claude-haiku-4-5".
+      const modelArg = String(req.model || "").trim();
+      if (modelArg) argv.push("--model", modelArg);
       if (allowedTools) argv.push("--allowedTools", allowedTools);
       // MCP config — needed by skills that use MCP tools (crawler CloakBrowser etc.)
       if (req.mcpConfigPath) argv.push("--mcp-config", req.mcpConfigPath);

@@ -117,3 +117,93 @@ test("audit log writes one JSONL line per call (allow OR deny)", async () => {
     assert.ok(typeof rec.latencyMs === "number", "has latencyMs");
   }
 });
+
+// ============================================================
+// 2026-07-07: Env-based runtime model override (Anthropic providers only).
+// Priority: NEXUS_AI_GATEWAY_MODEL_<SKILL> > NEXUS_AI_GATEWAY_MODEL_DEFAULT > policy.
+// Applied inside dispatchCall between authz and adapter — we can observe the
+// resolved model in the response's `.model` field (populated pre-adapter).
+// ============================================================
+test("env override: NEXUS_AI_GATEWAY_MODEL_<SKILL> replaces policy model", async () => {
+  const { gw } = _load();
+  // crawler.extract policy binds anthropic-cli / claude-haiku-4-5. Override
+  // via skill-specific env — expect resolved model in response.
+  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
+  try {
+    // Adapter will fail (no real CLI in test env) → L1_provider_unavailable
+    // OR L3 depending on quota. But r.model is set BEFORE adapter call.
+    const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
+    assert.equal(r.model, "claude-sonnet-4-6", "env override wins over policy claude-haiku-4-5");
+    assert.equal(r.provider, "anthropic-cli", "provider stays per policy");
+  } finally {
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+  }
+});
+
+test("env override: NEXUS_AI_GATEWAY_MODEL_DEFAULT applies when skill-specific unset", async () => {
+  const { gw } = _load();
+  process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
+  try {
+    const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
+    assert.equal(r.model, "claude-opus-4-7", "DEFAULT override applies");
+  } finally {
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
+  }
+});
+
+test("env override: skill-specific wins over DEFAULT", async () => {
+  const { gw } = _load();
+  process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
+  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-haiku-4-5";
+  try {
+    const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
+    assert.equal(r.model, "claude-haiku-4-5", "skill-specific wins over DEFAULT");
+  } finally {
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+  }
+});
+
+test("env override: does NOT apply to openai-compat providers", async () => {
+  const { gw } = _load();
+  // '*' fallback policy binds openai-compat / deepseek-v4-flash for balanced.
+  // Env override must NOT touch this (would break baseUrl/apiKeyEnv contract).
+  process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
+  try {
+    const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
+    assert.equal(r.model, "deepseek-v4-flash", "policy model preserved for non-Anthropic provider");
+    assert.equal(r.provider, "openai-compat");
+  } finally {
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
+  }
+});
+
+test("env override: modelOverride param still wins over env vars", async () => {
+  const { gw } = _load();
+  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
+  try {
+    const r = await gw.dispatchCall({
+      skill: "crawler.extract",
+      tier: "balanced",
+      prompt: "x",
+      modelOverride: {
+        provider: "anthropic-cli",
+        model: "claude-opus-4-7",
+      },
+    });
+    assert.equal(r.model, "claude-opus-4-7", "modelOverride param has highest priority");
+  } finally {
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+  }
+});
+
+test("env override: empty string ignored (falls back to policy)", async () => {
+  const { gw } = _load();
+  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "   ";
+  try {
+    const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
+    assert.equal(r.model, "claude-haiku-4-5", "whitespace-only env ignored, policy default wins");
+  } finally {
+    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+  }
+});
