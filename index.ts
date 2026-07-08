@@ -64,6 +64,8 @@ interface AICallRequest {
   // in policies.json under a tier's `mcpConfigPath` field; this field is a
   // per-call override for cases where the path is dynamic (crawler sub-git).
   mcpConfigPath?: string;
+  // Anthropic-only hint: wrap systemPrompt with cache_control ephemeral.
+  systemPromptCacheable?: boolean;
 }
 
 interface AICallResponse {
@@ -92,6 +94,9 @@ interface OutcomeRecord {
   outcome: "allow" | "deny";
   denyReason: DenyReason | null;
   latencyMs: number;
+  // Anthropic prompt cache stats (null if no cache used)
+  cachedTokensIn?: number;
+  cacheCreationIn?: number;
 }
 
 const _adapters: Map<string, any> = new Map();
@@ -276,6 +281,7 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
         prompt: req.prompt,
         messages: req.messages,
         systemPrompt: req.systemPrompt,
+        systemPromptCacheable: req.systemPromptCacheable,
         tools: req.tools,
         onDelta: req.onDelta,
         model: authzResult.model,
@@ -318,6 +324,14 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
     if (reservationId) {
       await budget.commit(reservationId, actualTotal);
       reservationId = null;
+    }
+
+    // Extract cache stats if adapter provided them (Anthropic prompt cache)
+    if ((adapterResp as any).cachedTokensIn != null) {
+      outcome.cachedTokensIn = (adapterResp as any).cachedTokensIn;
+    }
+    if ((adapterResp as any).cacheCreationIn != null) {
+      outcome.cacheCreationIn = (adapterResp as any).cacheCreationIn;
     }
 
     outcome.outcome = "allow";
@@ -487,6 +501,14 @@ async function dispatchEmbed(req: AIEmbedRequest): Promise<AIEmbedResponse> {
     if (reservationId) {
       await budget.commit(reservationId, adapterResp.tokensIn || 0);
       reservationId = null;
+    }
+
+    // Extract cache stats if adapter provided them (Anthropic prompt cache)
+    if ((adapterResp as any).cachedTokensIn != null) {
+      outcome.cachedTokensIn = (adapterResp as any).cachedTokensIn;
+    }
+    if ((adapterResp as any).cacheCreationIn != null) {
+      outcome.cacheCreationIn = (adapterResp as any).cacheCreationIn;
     }
 
     outcome.outcome = "allow";

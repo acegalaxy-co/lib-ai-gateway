@@ -27,6 +27,8 @@ interface AdapterCompleteRequest {
   maxOutputTokens: number;      // unused — CLI doesn't accept a cap
   schema?: Record<string, unknown> | null;
   skill?: string;               // optional; used for limit tracking
+  // systemPromptCacheable ignored — Claude CLI subscription is flat-fee, no token cache benefit
+  systemPromptCacheable?: boolean;
   // anthropic-cli extras (from policy binding):
   timeoutMs?: number;
   allowedTools?: string;        // CSV, empty = no tools

@@ -27,6 +27,7 @@ interface AdapterCompleteRequest {
   prompt?: string;
   messages?: ChatMessage[];
   systemPrompt?: string;
+  systemPromptCacheable?: boolean;
   tools?: ToolSpec[];
   onDelta?: (text: string) => void;
   model: string;
@@ -39,6 +40,8 @@ interface AdapterCompleteResponse {
   schemaJson: unknown | null;
   tokensIn: number;
   tokensOut: number;
+  cachedTokensIn?: number;
+  cacheCreationIn?: number;
   needsToolExecution?: boolean;
   response?: Record<string, unknown> | null;
 }
@@ -74,7 +77,17 @@ class AnthropicAPIAdapter extends IAIAdapter {
       max_tokens: req.maxOutputTokens,
       messages,
     };
-    if (req.systemPrompt) baseBody.system = req.systemPrompt;
+    if (req.systemPrompt) {
+      if (req.systemPromptCacheable) {
+        baseBody.system = [{
+          type: 'text',
+          text: req.systemPrompt,
+          cache_control: { type: 'ephemeral' },
+        }];
+      } else {
+        baseBody.system = req.systemPrompt;
+      }
+    }
     if (req.tools && req.tools.length > 0) baseBody.tools = req.tools;
 
     // Non-streaming path (both prompt-mode and chat-mode without onDelta).
@@ -153,6 +166,8 @@ function _shapeNonStreaming(resp: any, req: AdapterCompleteRequest): AdapterComp
   const usage = resp.usage || { input_tokens: 0, output_tokens: 0 };
   const tokensIn = usage.input_tokens || 0;
   const tokensOut = usage.output_tokens || 0;
+  const cachedTokensIn = usage.cache_read_input_tokens || 0;
+  const cacheCreationIn = usage.cache_creation_input_tokens || 0;
 
   // Tool-use stop: hand the whole turn back so caller (handler.ts) can execute tools.
   if (resp.stop_reason === "tool_use") {
@@ -161,6 +176,8 @@ function _shapeNonStreaming(resp: any, req: AdapterCompleteRequest): AdapterComp
       schemaJson: null,
       tokensIn,
       tokensOut,
+      cachedTokensIn,
+      cacheCreationIn,
       needsToolExecution: true,
       response: { content: resp.content, stop_reason: "tool_use" },
     };
@@ -177,7 +194,7 @@ function _shapeNonStreaming(resp: any, req: AdapterCompleteRequest): AdapterComp
     try { schemaJson = JSON.parse(text); } catch (_e) { schemaJson = null; }
   }
 
-  return { text, schemaJson, tokensIn, tokensOut, needsToolExecution: false, response: null };
+  return { text, schemaJson, tokensIn, tokensOut, cachedTokensIn, cacheCreationIn, needsToolExecution: false, response: null };
 }
 
 export = { AnthropicAPIAdapter };
