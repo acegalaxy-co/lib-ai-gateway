@@ -110,6 +110,31 @@
       },
       "maxOutputTokens": 8,
       "dailyTokenQuota": 1000000
+    },
+    "sensitive-classifier.classify": {
+      "_doc": "Runtime query classifier used after keyword pre-filter in src/app/llm/sensitive-classifier.ts. API-key Haiku keeps this off subscription budget; use NEXUS_AI_GATEWAY_MODEL_SENSITIVE_CLASSIFIER_CLASSIFY for runtime model override.",
+      "tiers": {
+        "fast":     { "provider": "anthropic-api", "modelKey": "haiku" },
+        "balanced": { "provider": "anthropic-api", "modelKey": "sonnet" }
+      },
+      "maxOutputTokens": 256,
+      "dailyTokenQuota": 50000
+    },
+    "feedback-app.analyze": {
+      "_doc": "Read-only feedback issue analysis for src/app/schedulers/acenexus/feedback-app-processor.ts. Routes Codex subscription usage through ai-gateway; codex-cli adapter enforces read-only sandbox.",
+      "tiers": {
+        "balanced": { "provider": "codex-cli", "modelKey": "codex_cli", "timeoutMs": 180000 }
+      },
+      "maxOutputTokens": 1500,
+      "dailyTokenQuota": 500000
+    },
+    "model-health.ping": {
+      "_doc": "Tiny model availability smoke test used by model registry health checks. Callers may pass modelOverride to test a specific provider/model/apiKeyEnv through gateway gates.",
+      "tiers": {
+        "fast": { "provider": "anthropic-api", "modelKey": "haiku" }
+      },
+      "maxOutputTokens": 10,
+      "dailyTokenQuota": 100000
     }
   }
 }

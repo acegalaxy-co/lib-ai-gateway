@@ -20,13 +20,19 @@ callLLM(prompt, { skill, tier, schema? })
 
 Deny reasons: `L1_provider_unavailable | L2_authz | L3_budget_exhausted | L4_circuit_open | L5_audit_fatal`.
 
-## Status (Phase 1)
+## Status (current)
 
-- ✅ Skeleton + Anthropic API adapter (`adapters/anthropic-api.ts`)
-- ⏳ Phase 2a: shadow mode — wire `src/app/llm/client.ts` to log-only call gateway in parallel, compare outcomes
-- ⏳ Phase 2b: enable shadow on dev 1-2 weeks
-- ⏳ Phase 2c: cut over (gateway becomes source of truth)
-- ⏳ Phase 3: add `anthropic-cli`, `openai-api`, `deepseek-api`, `gemini-cli` adapters + migrate all callsites
+- ✅ 5-layer dispatch for text calls (`dispatchCall`) and embeddings (`dispatchEmbed`).
+- ✅ Subscription flow: model registry rows with `type: "Subscription"` route to CLI adapters:
+  - `anthropic` → `anthropic-cli`
+  - `openai-compat` + Gemini model id → `gemini-cli`
+  - `openai-compat` + Codex model id → `codex-cli`
+- ✅ API Key flow: model registry rows with `type: "API Key"` route to REST adapters:
+  - `anthropic` → `anthropic-api`
+  - `openai-compat` → `openai-compat`
+  - embeddings → `openai-embeddings`
+- ✅ `src/app/llm/client.ts`, `src/app/llm/claude-cli.ts`, and RAG embeddings route runtime calls through this gateway.
+- 🚧 Remaining audit: direct model catalog/health probes and any legacy runtime bypasses outside `commons/ai-gateway/` must be migrated or explicitly classified as non-runtime probes before enforcement is tightened.
 
 ## Contract
 
@@ -86,8 +92,13 @@ commons/ai-gateway/
   index.ts                    # dispatchCall() — 5-layer entry
   types.ts                    # AICallRequest, AICallResponse, OutcomeRecord
   adapters/
-    adapter-interface.ts      # IAIAdapter abstract
-    anthropic-api.ts          # Phase 1 only
+    adapter-interface.ts      # IAIAdapter / IEmbedAdapter abstract contracts
+    anthropic-api.ts          # Anthropic Messages API, API-key flow
+    anthropic-cli.ts          # Claude CLI subscription flow
+    gemini-cli.ts             # Gemini CLI subscription flow
+    codex-cli.ts              # Codex CLI subscription flow
+    openai-compat.ts          # OpenAI-compatible chat completions API flow
+    openai-embeddings.ts      # OpenAI-compatible embeddings API flow
   authz/
     engine.ts                 # skill+provider+model → allow/deny
     policies.json             # matrix config
