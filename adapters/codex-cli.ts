@@ -13,8 +13,14 @@
 
 const { spawn } = require("child_process");
 const { IAIAdapter } = require("./adapter-interface");
+const { isLocalEndpoint } = require("../lib/env");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
+
+// 9router proxy endpoint used on LOCAL (mirrors anthropic-cli's ANTHROPIC_BASE_URL).
+// PROD leaves the provider endpoint to codex's own config (api.openai.com).
+const NINEROUTER_BASE_URL = "http://127.0.0.1:20128/v1";
+const CODEX_PROVIDER_KEY = "9router"; // matches [model_providers.9router] in ~/.codex/config.toml
 
 interface AdapterCompleteRequest {
   prompt: string;
@@ -24,6 +30,7 @@ interface AdapterCompleteRequest {
   skill?: string;               // optional; used for logging
   timeoutMs?: number;
   mcpConfigPath?: string;
+  baseUrl?: string;             // endpoint override (LOCAL → 9router). Empty → codex config default.
 }
 
 interface AdapterCompleteResponse {
@@ -53,28 +60,37 @@ class CodexCLIAdapter extends IAIAdapter {
     const timeout = req.timeoutMs || DEFAULT_TIMEOUT_MS;
     const skill = req.skill || "unknown";
 
-    // Strip null bytes — spawn() rejects null in argv. PDF text may contain \x00.
+    // Strip null bytes — spawn() rejects null in argv/stdin. PDF text may contain \x00.
     const cleanPrompt = String(req.prompt).replace(/\x00/g, "");
 
     const text = await new Promise<string>((resolve, reject) => {
       const [cmd, prefix] = _cliInvocation();
-      const argv = [...prefix, "exec"];
+      const argv = [...prefix, "exec", "-s", "read-only"];
 
       // Model — pass explicit if policy or env override resolved a value.
       // Skip if empty so CLI keeps its default.
       const modelArg = String(req.model || "").trim();
       if (modelArg) argv.push("-m", modelArg);
 
+      // Endpoint switch (env-aware, mirrors anthropic-cli's ANTHROPIC_BASE_URL).
+      // On LOCAL we override the codex provider's base_url to the 9router proxy
+      // via `-c` so we don't depend on a static ~/.codex/config.toml. An explicit
+      // req.baseUrl (from a Notion row / modelOverride) wins over the default.
+      // On PROD we leave codex's own provider config untouched.
+      const _endpoint = String(req.baseUrl || "").trim() || (isLocalEndpoint() ? NINEROUTER_BASE_URL : "");
+      if (_endpoint) {
+        argv.push("-c", `model_providers.${CODEX_PROVIDER_KEY}.base_url="${_endpoint}"`);
+      }
+
       // MCP config — if skill uses MCP tools (e.g., CloakBrowser).
       if (req.mcpConfigPath) argv.push("--mcp-config", req.mcpConfigPath);
 
-      // Prompt as positional arg (codex exec takes prompt as last arg).
-      argv.push(cleanPrompt);
+      // Prompt is piped via stdin so it is not exposed via process argv.
 
       const child = spawn(cmd, argv, {
         timeout,
         killSignal: "SIGKILL",
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       let out = "";
@@ -82,6 +98,8 @@ class CodexCLIAdapter extends IAIAdapter {
       child.stdout.on("data", (d: Buffer) => { out += d.toString(); });
       child.stderr.on("data", (d: Buffer) => { err += d.toString(); });
       child.on("error", (e: Error) => reject(new Error(`spawn failed: ${e.message}`)));
+      child.stdin.write(cleanPrompt);
+      child.stdin.end();
       child.on("close", (code: number | null, signal: string | null) => {
         if (signal) return reject(new Error(`codex killed (${signal}) — timeout?`));
         if (code !== 0) {

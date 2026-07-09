@@ -37,6 +37,37 @@ function _load() {
   return { gw, budget, breaker, tmpLog };
 }
 
+async function _checkModelKeyRouting(modelKey) {
+  // Force PROD endpoint so the Anthropic cc/-prefix normalization (added
+  // 2026-07-09) does not alter the bare registry id these routing tests assert.
+  delete process.env.ANTHROPIC_BASE_URL;
+  delete process.env.LOCAL_SERVICE_MODE;
+  _resetModules();
+
+  const policiesPath = path.join(DIST, "authz", "policies.json");
+  delete require.cache[policiesPath];
+  const policies = require(policiesPath);
+
+  const testSkill = "__test.model-key-routing";
+  const originalSkill = policies.skills[testSkill];
+  policies.skills[testSkill] = {
+    tiers: { balanced: { modelKey } },
+    maxOutputTokens: 4096,
+    dailyTokenQuota: 2000000,
+  };
+
+  const authz = require(path.join(DIST, "authz", "engine.js"));
+  authz._reset();
+
+  try {
+    return await authz.check(testSkill, "balanced");
+  } finally {
+    if (originalSkill === undefined) delete policies.skills[testSkill];
+    else policies.skills[testSkill] = originalSkill;
+    authz._reset();
+  }
+}
+
 test("L2_authz: empty skill denies", async () => {
   const { gw } = _load();
   const r = await gw.dispatchCall({ skill: "", tier: "balanced", prompt: "x" });
@@ -200,6 +231,10 @@ test("env override: modelOverride param still wins over env vars", async () => {
 });
 
 test("env override: empty string ignored (falls back to policy)", async () => {
+  // Force PROD endpoint so the Anthropic cc/-prefix normalization does not
+  // alter the bare registry id this test asserts (env-aware resolve 2026-07-09).
+  const _prevBase = process.env.ANTHROPIC_BASE_URL;
+  delete process.env.ANTHROPIC_BASE_URL;
   const { gw } = _load();
   process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "   ";
   try {
@@ -209,5 +244,49 @@ test("env override: empty string ignored (falls back to policy)", async () => {
     assert.equal(r.model, "claude-haiku-4-5-20251001", "whitespace-only env ignored, policy default wins");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    if (_prevBase === undefined) delete process.env.ANTHROPIC_BASE_URL;
+    else process.env.ANTHROPIC_BASE_URL = _prevBase;
   }
+});
+
+// ============================================================
+// Model registry routing by Type column.
+// These tests hit authz only, so no real adapters / network / CLI are needed.
+// ============================================================
+test("authz modelKey routing: sonnet_cli uses anthropic-cli subscription route", async () => {
+  const result = await _checkModelKeyRouting("sonnet_cli");
+  assert.equal(result.allow, true);
+  assert.equal(result.provider, "anthropic-cli");
+  assert.equal(result.model, "claude-sonnet-4-6");
+});
+
+test("authz modelKey routing: gemini_cli uses gemini-cli subscription route", async () => {
+  const result = await _checkModelKeyRouting("gemini_cli");
+  assert.equal(result.allow, true);
+  assert.equal(result.provider, "gemini-cli");
+  assert.equal(result.model, "gemini-2.5-pro");
+});
+
+test("authz modelKey routing: codex_cli uses codex-cli subscription route", async () => {
+  const result = await _checkModelKeyRouting("codex_cli");
+  assert.equal(result.allow, true);
+  assert.equal(result.provider, "codex-cli");
+  assert.equal(result.model, "o1");
+});
+
+test("authz modelKey routing: sonnet uses anthropic-api api-key route", async () => {
+  const result = await _checkModelKeyRouting("sonnet");
+  assert.equal(result.allow, true);
+  assert.equal(result.provider, "anthropic-api");
+  assert.equal(result.model, "claude-sonnet-4-6");
+  assert.equal(result.apiKeyEnv, "NEXUS_ANTHROPIC_API_KEY");
+});
+
+test("authz modelKey routing: deepseek uses openai-compat api-key route", async () => {
+  const result = await _checkModelKeyRouting("deepseek");
+  assert.equal(result.allow, true);
+  assert.equal(result.provider, "openai-compat");
+  assert.equal(result.model, "deepseek-v4-pro");
+  assert.equal(result.baseUrl, "https://api.deepseek.com/v1");
+  assert.equal(result.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY");
 });

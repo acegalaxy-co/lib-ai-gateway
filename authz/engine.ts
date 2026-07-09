@@ -15,6 +15,7 @@
 
 import path = require("path");
 import fs = require("fs");
+import env = require("../lib/env");
 
 interface TierBinding {
   // New (preferred): reference a row in llmModels registry.
@@ -221,6 +222,14 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
 
   if (!resolvedProvider || !resolvedModel) {
     return { allow: false, reason: "invalid tier binding" };
+  }
+
+  // Model-id normalization for Anthropic providers.
+  // 9router proxy (local) requires 'cc/' prefix; production API uses bare IDs.
+  const _isLocal = env.isLocalEndpoint();
+  if (resolvedProvider.startsWith('anthropic')) {
+    if (_isLocal && !resolvedModel.startsWith('cc/')) resolvedModel = 'cc/' + resolvedModel;
+    else if (!_isLocal && resolvedModel.startsWith('cc/')) resolvedModel = resolvedModel.slice(3);
   }
 
   // Provider-specific binding validation.

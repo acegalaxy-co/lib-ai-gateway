@@ -15,6 +15,7 @@ const budget = require("./rate-limit/budget");
 const breaker = require("./rate-limit/circuit-breaker");
 const audit = require("./audit/logger");
 const { ClaudeCliLimitError } = require("./lib/claude-limit/error");
+const { isLocalEndpoint, resolveEnv } = require("./lib/env");
 
 type Tier = "fast" | "balanced" | "deep";
 type DenyReason =
@@ -553,4 +554,4 @@ async function _finalizeEmbed(
   return resp;
 }
 
-export = { dispatchCall, dispatchEmbed };
+export = { dispatchCall, dispatchEmbed, isLocalEndpoint, resolveEnv };
