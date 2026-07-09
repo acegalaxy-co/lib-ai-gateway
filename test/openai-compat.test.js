@@ -21,7 +21,7 @@ test("openai-compat: success path returns text + token usage", async () => {
   const restore = _mockFetch(async (url, opts) => {
     assert.equal(url, "https://api.deepseek.com/v1/chat/completions");
     const body = JSON.parse(opts.body);
-    assert.equal(body.model, "deepseek-v4-flash");
+    assert.equal(body.model, "deepseek-v4-pro");
     assert.equal(body.max_tokens, 512);
     assert.equal(body.messages[0].content, "hello");
     assert.equal(opts.headers["Authorization"], "Bearer test-key-deepseek");
@@ -40,7 +40,7 @@ test("openai-compat: success path returns text + token usage", async () => {
     const adapter = new OpenAICompatAdapter();
     const r = await adapter.complete({
       prompt: "hello",
-      model: "deepseek-v4-flash",
+      model: "deepseek-v4-pro",
       maxOutputTokens: 512,
       baseUrl: "https://api.deepseek.com/v1",
       apiKeyEnv: "TEST_DEEPSEEK_KEY",

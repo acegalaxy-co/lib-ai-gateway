@@ -68,9 +68,9 @@ test("L2 fallback: unknown skill resolves via '*' policy, provider+model set on 
   const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
   assert.equal(r.outcome, "deny");
   assert.equal(r.denyReason, "L1_provider_unavailable");
-  // '*' policy maps balanced → openai-compat / deepseek-v4-flash.
+  // '*' policy maps balanced → openai-compat / deepseek-v4-pro.
   assert.equal(r.provider, "openai-compat");
-  assert.equal(r.model, "deepseek-v4-flash");
+  assert.equal(r.model, "deepseek-v4-pro");
 });
 
 test("L4_circuit_open: trips after N failures, blocks next call", async () => {
@@ -88,8 +88,10 @@ test("L4_circuit_open: trips after N failures, blocks next call", async () => {
 
 test("L3_budget_exhausted: reserve fails when over quota", async () => {
   const { gw, budget } = _load();
-  // '*' policy quota = 200000. Pre-fill window via direct budget API.
-  await budget.reserve("burn.skill", 199000, 200000);
+  // '*' policy quota = 2000000 (post-v4-pro migration 2026-07-09).
+  // Pre-fill window near-full so next dispatchCall's estimate (10K prompt +
+  // 393216 maxOut) blows the remaining budget.
+  await budget.reserve("burn.skill", 1999000, 2000000);
   // Adapter would fail (no key) but budget should reject first.
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.NEXUS_ANTHROPIC_API_KEY;
@@ -166,12 +168,12 @@ test("env override: skill-specific wins over DEFAULT", async () => {
 
 test("env override: does NOT apply to openai-compat providers", async () => {
   const { gw } = _load();
-  // '*' fallback policy binds openai-compat / deepseek-v4-flash for balanced.
+  // '*' fallback policy binds openai-compat / deepseek-v4-pro for balanced.
   // Env override must NOT touch this (would break baseUrl/apiKeyEnv contract).
   process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
   try {
     const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
-    assert.equal(r.model, "deepseek-v4-flash", "policy model preserved for non-Anthropic provider");
+    assert.equal(r.model, "deepseek-v4-pro", "policy model preserved for non-Anthropic provider");
     assert.equal(r.provider, "openai-compat");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
@@ -202,7 +204,9 @@ test("env override: empty string ignored (falls back to policy)", async () => {
   process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "   ";
   try {
     const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
-    assert.equal(r.model, "claude-haiku-4-5", "whitespace-only env ignored, policy default wins");
+    // 2026-07-09: crawler.extract now uses modelKey='haiku' → resolves to
+    // Notion registry id 'claude-haiku-4-5-20251001' (dated suffix).
+    assert.equal(r.model, "claude-haiku-4-5-20251001", "whitespace-only env ignored, policy default wins");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
   }

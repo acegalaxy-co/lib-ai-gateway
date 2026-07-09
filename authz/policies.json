@@ -1,26 +1,26 @@
 {
-  "_doc": "skill -> { tiers: { fast|balanced|deep: { provider, model, ...extras } }, maxOutputTokens, dailyTokenQuota }. Provider-specific extras: openai-compat/openai-embeddings → baseUrl + apiKeyEnv. anthropic-cli → timeoutMs? + allowedTools? (CSV). anthropic-api → none (key from env). Embed skills should bind provider='openai-embeddings' on any tier; dispatchEmbed() reads them.",
+  "_doc": "skill -> { tiers: { fast|balanced|deep: { modelKey OR (provider+model), ...extras } }, maxOutputTokens, dailyTokenQuota }. modelKey references data/llm-models-cache.json (Notion-synced) with config/llm-config.json fallback — resolves provider, model id, baseUrl, apiKeyEnv from the shared registry. Legacy inline `provider`+`model` still supported for models not in registry (e.g. opus). Explicit binding fields override resolved values.",
   "skills": {
     "*": {
       "tiers": {
-        "fast":     { "provider": "openai-compat", "model": "gemini-2.5-flash", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai", "apiKeyEnv": "NEXUS_GOOGLE_API_KEY" },
-        "balanced": { "provider": "openai-compat", "model": "deepseek-v4-flash", "baseUrl": "https://api.deepseek.com/v1", "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY" },
+        "fast":     { "modelKey": "gemini_flash" },
+        "balanced": { "modelKey": "deepseek" },
         "deep":     { "provider": "anthropic-api", "model": "claude-opus-4-7" }
       },
-      "maxOutputTokens": 4096,
-      "dailyTokenQuota": 200000
+      "maxOutputTokens": 393216,
+      "dailyTokenQuota": 2000000
     },
     "invoice-enrich.summarize": {
       "tiers": {
-        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5", "timeoutMs": 90000 },
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 90000 }
+        "fast":     { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 90000 },
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 90000 }
       },
       "maxOutputTokens": 2048,
       "dailyTokenQuota": 500000
     },
     "invoice-enrich.extract-parties": {
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 120000 },
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 120000 },
         "deep":     { "provider": "anthropic-api", "model": "claude-opus-4-7" }
       },
       "maxOutputTokens": 2048,
@@ -28,28 +28,28 @@
     },
     "kane.ai-news-brief": {
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 120000, "allowedTools": "WebSearch" }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 120000, "allowedTools": "WebSearch" }
       },
       "maxOutputTokens": 4096,
       "dailyTokenQuota": 200000
     },
     "invoice-enrich.classify": {
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 180000, "allowedTools": "Read" }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 180000, "allowedTools": "Read" }
       },
       "maxOutputTokens": 2048,
       "dailyTokenQuota": 500000
     },
     "invoice-enrich.scan": {
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 90000 }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 90000 }
       },
       "maxOutputTokens": 2048,
       "dailyTokenQuota": 500000
     },
     "legacy.claude-cli": {
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 90000 }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 90000 }
       },
       "maxOutputTokens": 4096,
       "dailyTokenQuota": 200000
@@ -57,12 +57,12 @@
     "nexus.chat": {
       "_doc": "Phase 4: catch-all chat skill for src/app/llm/client.ts. Tier name encodes Nexus tier (budget/standard/analysis) — client.ts:selectModel passes the tier label here, gateway resolves provider+model via binding. Caller-supplied model overrides binding via authzResult passthrough.",
       "tiers": {
-        "fast":     { "provider": "openai-compat",  "model": "gemini-2.5-flash", "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai", "apiKeyEnv": "NEXUS_GOOGLE_API_KEY" },
-        "balanced": { "provider": "openai-compat",  "model": "deepseek-v4-flash", "baseUrl": "https://api.deepseek.com/v1", "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY" },
-        "deep":     { "provider": "anthropic-api",  "model": "claude-sonnet-4-6" }
+        "fast":     { "modelKey": "gemini_flash" },
+        "balanced": { "modelKey": "deepseek" },
+        "deep":     { "provider": "anthropic-api", "modelKey": "sonnet" }
       },
-      "maxOutputTokens": 4096,
-      "dailyTokenQuota": 2000000
+      "maxOutputTokens": 393216,
+      "dailyTokenQuota": 4000000
     },
     "rag.embed": {
       "tiers": {
@@ -75,9 +75,9 @@
     "crawler.login": {
       "_doc": "One-time helper for user to login Facebook/Telegram in the CloakBrowser profile. Opens headed browser, waits ~5 min for manual login, closes. Run manually via npm run login:fb / login:tg. Extremely low volume — few calls/month total.",
       "tiers": {
-        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
-        "balanced": { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
-        "deep":     { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" }
+        "fast":     { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
+        "balanced": { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
+        "deep":     { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 330000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" }
       },
       "maxOutputTokens": 256,
       "dailyTokenQuota": 100000
@@ -85,9 +85,9 @@
     "crawler.join": {
       "_doc": "Crawler Facebook/Telegram group-join check via CloakBrowser MCP. Cheap: 5-30s + few browser tool calls per channel. Runs ~10-30 channels/day per feature (artist/dev/qaqc/gd) → conservative daily quota. Default Haiku 4.5 primary + Sonnet 4.6 fallback (2026-07-07): gateway-runner auto-retry deep tier khi Haiku fail JSON parse. Force pure Haiku via caller fallbackTier=null; force Sonnet always via NEXUS_AI_GATEWAY_MODEL_CRAWLER_JOIN=claude-sonnet-4-6.",
       "tiers": {
-        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
-        "balanced": { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
-        "deep":     { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" }
+        "fast":     { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
+        "balanced": { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" },
+        "deep":     { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close" }
       },
       "maxOutputTokens": 256,
       "dailyTokenQuota": 500000
@@ -95,9 +95,9 @@
     "crawler.extract": {
       "_doc": "Crawler post/profile extraction from FB Group/Telegram/Upwork/Fiverr/LinkedIn/Diễn đàn VN via CloakBrowser MCP. 5-30s + browser interaction per keyword-channel pair. High-volume — 4 features × 5 batches × N channels × M keywords. Default Haiku 4.5 primary + Sonnet 4.6 fallback (2026-07-07): gateway-runner tự retry với deep tier khi Haiku fail JSON parse (Haiku thường prose preamble). Force pure Haiku via caller fallbackTier=null; force Sonnet always via NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-sonnet-4-6.",
       "tiers": {
-        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" },
-        "balanced": { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" },
-        "deep":     { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" }
+        "fast":     { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" },
+        "balanced": { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" },
+        "deep":     { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_close" }
       },
       "maxOutputTokens": 4096,
       "dailyTokenQuota": 5000000
@@ -105,8 +105,8 @@
     "sensitive-audit.classify": {
       "_doc": "Tier 2 detector for sensitive-data audit. 1 LLM call per ambiguous page/file (regex confidence 0.55-0.7). Daily scope: up to MAX_NOTION_PAGES + MAX_DRIVE_FILES (500+500=1000). Conservative quota (1M tokens/day) covers worst case.",
       "tiers": {
-        "fast":     { "provider": "anthropic-cli", "model": "claude-haiku-4-5",  "timeoutMs": 30000 },
-        "balanced": { "provider": "anthropic-cli", "model": "claude-sonnet-4-6", "timeoutMs": 60000 }
+        "fast":     { "provider": "anthropic-cli", "modelKey": "haiku",  "timeoutMs": 30000 },
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet", "timeoutMs": 60000 }
       },
       "maxOutputTokens": 8,
       "dailyTokenQuota": 1000000
