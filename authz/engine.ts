@@ -49,6 +49,7 @@ interface ModelRow {
   baseUrl?: string;
   apiKeyEnv?: string;
   active?: boolean;
+  type?: "API Key" | "Subscription";
 }
 
 interface ModelsFile {
@@ -188,14 +189,31 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
     if (!row || !row.id) {
       return { allow: false, reason: `modelKey '${binding.modelKey}' not in llmModels registry` };
     }
+
+    // Type-aware provider routing (2026-07-09): Subscription models → CLI
+    // adapters, API Key models → REST adapters. The Notion 'Type' column
+    // decides which sub-adapter handles this row.
+    let effectiveProvider = row.provider;
+    if (row.type === "Subscription") {
+      if (row.provider === "anthropic") effectiveProvider = "anthropic-cli";
+      else if (row.provider === "openai-compat") {
+        if (row.id && row.id.startsWith("gemini")) effectiveProvider = "gemini-cli";
+        else if (row.id === "o1" || (row.id && row.id.startsWith("gpt-5-codex"))) effectiveProvider = "codex-cli";
+        else effectiveProvider = row.provider;
+      }
+    } else if (row.type === "API Key") {
+      if (row.provider === "anthropic") effectiveProvider = "anthropic-api";
+      // openai-compat stays as-is for API Key
+    }
+
     // active=false enforcement only for cost-metered API providers. Anthropic
     // CLI (session subscription) + Anthropic API remain permitted regardless
     // — Nexus Notion row keeps them `active=false` while credits are zero but
     // subscription-tier CLI still runs.
-    if (row.active === false && (row.provider === "openai-compat" || row.provider === "openai-embeddings")) {
+    if (row.active === false && (effectiveProvider === "openai-compat" || effectiveProvider === "openai-embeddings")) {
       return { allow: false, reason: `modelKey '${binding.modelKey}' is inactive in llmModels registry` };
     }
-    if (!resolvedProvider) resolvedProvider = row.provider;
+    if (!resolvedProvider) resolvedProvider = effectiveProvider;
     if (!resolvedModel) resolvedModel = row.id;
     if (resolvedBaseUrl === undefined && row.baseUrl) resolvedBaseUrl = row.baseUrl;
     if (resolvedApiKeyEnv === undefined && row.apiKeyEnv) resolvedApiKeyEnv = row.apiKeyEnv;

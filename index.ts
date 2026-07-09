@@ -8,6 +8,8 @@ const { AnthropicAPIAdapter } = require("./adapters/anthropic-api");
 const { OpenAICompatAdapter } = require("./adapters/openai-compat");
 const { AnthropicCLIAdapter } = require("./adapters/anthropic-cli");
 const { OpenAIEmbeddingsAdapter } = require("./adapters/openai-embeddings");
+const { GeminiCLIAdapter } = require("./adapters/gemini-cli");
+const { CodexCLIAdapter } = require("./adapters/codex-cli");
 const authz = require("./authz/engine");
 const budget = require("./rate-limit/budget");
 const breaker = require("./rate-limit/circuit-breaker");
@@ -113,6 +115,12 @@ function _getAdapter(provider: string): any {
       break;
     case "anthropic-cli":
       adapter = new AnthropicCLIAdapter();
+      break;
+    case "gemini-cli":
+      adapter = new GeminiCLIAdapter();
+      break;
+    case "codex-cli":
+      adapter = new CodexCLIAdapter();
       break;
     case "openai-embeddings":
       adapter = new OpenAIEmbeddingsAdapter();
