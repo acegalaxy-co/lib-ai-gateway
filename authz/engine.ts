@@ -204,6 +204,10 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
       }
     } else if (row.type === "API Key") {
       if (row.provider === "anthropic") effectiveProvider = "anthropic-api";
+      // Dedicated DeepSeek adapter (2026-07-09) — registry row provider is
+      // "deepseek-api" directly (see config/llm-config.json), so this branch
+      // is mostly a no-op passthrough; kept explicit for readability/audit.
+      else if (row.provider === "deepseek-api") effectiveProvider = "deepseek-api";
       // openai-compat stays as-is for API Key
     }
 
@@ -211,7 +215,12 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
     // CLI (session subscription) + Anthropic API remain permitted regardless
     // — Nexus Notion row keeps them `active=false` while credits are zero but
     // subscription-tier CLI still runs.
-    if (row.active === false && (effectiveProvider === "openai-compat" || effectiveProvider === "openai-embeddings")) {
+    if (
+      row.active === false &&
+      (effectiveProvider === "openai-compat" ||
+        effectiveProvider === "openai-embeddings" ||
+        effectiveProvider === "deepseek-api")
+    ) {
       return { allow: false, reason: `modelKey '${binding.modelKey}' is inactive in llmModels registry` };
     }
     if (!resolvedProvider) resolvedProvider = effectiveProvider;
@@ -233,7 +242,11 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
   }
 
   // Provider-specific binding validation.
-  if (resolvedProvider === "openai-compat" || resolvedProvider === "openai-embeddings") {
+  if (
+    resolvedProvider === "openai-compat" ||
+    resolvedProvider === "openai-embeddings" ||
+    resolvedProvider === "deepseek-api"
+  ) {
     if (!resolvedBaseUrl || !resolvedApiKeyEnv) {
       return { allow: false, reason: `${resolvedProvider} requires baseUrl + apiKeyEnv in binding` };
     }

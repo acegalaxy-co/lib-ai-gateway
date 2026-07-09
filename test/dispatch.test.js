@@ -92,26 +92,27 @@ test("L2_authz: skill lacks tier binding denies (summarize has no 'deep')", asyn
 
 test("L2 fallback: unknown skill resolves via '*' policy, provider+model set on outcome", async () => {
   const { gw } = _load();
-  // Adapter will fail because no key for the bound openai-compat provider —
+  // Adapter will fail because no key for the bound deepseek-api provider —
   // we expect L1_provider_unavailable, but provider+model must be populated
   // from the '*' fallback policy before the adapter is called.
   delete process.env.NEXUS_DEEPSEEK_API_KEY;
   const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
   assert.equal(r.outcome, "deny");
   assert.equal(r.denyReason, "L1_provider_unavailable");
-  // '*' policy maps balanced → openai-compat / deepseek-v4-pro.
-  assert.equal(r.provider, "openai-compat");
+  // '*' policy maps balanced → deepseek-api / deepseek-v4-pro (2026-07-09:
+  // dedicated adapter, was openai-compat before).
+  assert.equal(r.provider, "deepseek-api");
   assert.equal(r.model, "deepseek-v4-pro");
 });
 
 test("L4_circuit_open: trips after N failures, blocks next call", async () => {
   const { gw, breaker } = _load();
-  // Force 5 failures on the provider bound to '*' balanced (openai-compat).
+  // Force 5 failures on the provider bound to '*' balanced (deepseek-api).
   delete process.env.NEXUS_DEEPSEEK_API_KEY;
   for (let i = 0; i < 5; i += 1) {
     await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
   }
-  assert.equal(breaker._state_of("openai-compat"), "open");
+  assert.equal(breaker._state_of("deepseek-api"), "open");
   const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
   assert.equal(r.outcome, "deny");
   assert.equal(r.denyReason, "L4_circuit_open");
@@ -197,15 +198,15 @@ test("env override: skill-specific wins over DEFAULT", async () => {
   }
 });
 
-test("env override: does NOT apply to openai-compat providers", async () => {
+test("env override: does NOT apply to non-Anthropic providers", async () => {
   const { gw } = _load();
-  // '*' fallback policy binds openai-compat / deepseek-v4-pro for balanced.
+  // '*' fallback policy binds deepseek-api / deepseek-v4-pro for balanced.
   // Env override must NOT touch this (would break baseUrl/apiKeyEnv contract).
   process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
   try {
     const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
     assert.equal(r.model, "deepseek-v4-pro", "policy model preserved for non-Anthropic provider");
-    assert.equal(r.provider, "openai-compat");
+    assert.equal(r.provider, "deepseek-api");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
   }
@@ -282,10 +283,10 @@ test("authz modelKey routing: sonnet uses anthropic-api api-key route", async ()
   assert.equal(result.apiKeyEnv, "NEXUS_ANTHROPIC_API_KEY");
 });
 
-test("authz modelKey routing: deepseek uses openai-compat api-key route", async () => {
+test("authz modelKey routing: deepseek uses dedicated deepseek-api route", async () => {
   const result = await _checkModelKeyRouting("deepseek");
   assert.equal(result.allow, true);
-  assert.equal(result.provider, "openai-compat");
+  assert.equal(result.provider, "deepseek-api");
   assert.equal(result.model, "deepseek-v4-pro");
   assert.equal(result.baseUrl, "https://api.deepseek.com/v1");
   assert.equal(result.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY");

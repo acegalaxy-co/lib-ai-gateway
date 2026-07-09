@@ -7,6 +7,7 @@
 // Adapters split by billing Type: api-key/ (REST) vs subscription/ (CLI).
 const { AnthropicAPIAdapter } = require("./adapters/api-key/anthropic-api");
 const { OpenAICompatAdapter } = require("./adapters/api-key/openai-compat");
+const { DeepSeekAdapter } = require("./adapters/api-key/deepseek");
 const { OpenAIEmbeddingsAdapter } = require("./adapters/api-key/openai-embeddings");
 const { AnthropicCLIAdapter } = require("./adapters/subscription/anthropic-cli");
 const { GeminiCLIAdapter } = require("./adapters/subscription/gemini-cli");
@@ -114,6 +115,9 @@ function _getAdapter(provider: string): any {
       break;
     case "openai-compat":
       adapter = new OpenAICompatAdapter();
+      break;
+    case "deepseek-api":
+      adapter = new DeepSeekAdapter();
       break;
     case "anthropic-cli":
       adapter = new AnthropicCLIAdapter();

@@ -318,4 +318,14 @@ async function _consumeStream(
   };
 }
 
-export = { OpenAICompatAdapter };
+// Shared helpers exported for deepseek.ts (dedicated adapter) reuse — avoids
+// duplicating the ~280-line Chat Completions request/stream logic just to
+// change provider id + response_format tuning.
+export = {
+  OpenAICompatAdapter,
+  _maxTokensField,
+  _convertTools,
+  _convertMessages,
+  _consumeStream,
+  REQUEST_TIMEOUT_MS,
+};
