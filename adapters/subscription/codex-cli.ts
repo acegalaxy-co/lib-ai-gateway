@@ -12,8 +12,8 @@
 // Parse stderr reactively for rate_limit / auth_error patterns.
 
 const { spawn } = require("child_process");
-const { IAIAdapter } = require("./adapter-interface");
-const { isLocalEndpoint } = require("../lib/env");
+const { IAIAdapter } = require("../adapter-interface");
+const { isLocalEndpoint } = require("../../lib/env");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 

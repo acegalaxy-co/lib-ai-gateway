@@ -12,7 +12,7 @@
 // Parse spawn errors + non-zero exit with generic error message.
 
 const { spawn } = require("child_process");
-const { IAIAdapter } = require("./adapter-interface");
+const { IAIAdapter } = require("../adapter-interface");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 

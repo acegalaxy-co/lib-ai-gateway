@@ -7,7 +7,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 
-const ADAPTER_PATH = path.join(__dirname, "..", "dist", "adapters", "openai-embeddings.js");
+const ADAPTER_PATH = path.join(__dirname, "..", "dist", "adapters", "api-key", "openai-embeddings.js");
 const { OpenAIEmbeddingsAdapter } = require(ADAPTER_PATH);
 
 function _mockFetch(handler) {

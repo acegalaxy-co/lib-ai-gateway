@@ -8,7 +8,7 @@
 // src/app/llm/client.ts:chatAnthropic shape verbatim — that's the legacy
 // callsite this adapter replaces.
 
-const { IAIAdapter } = require("./adapter-interface");
+const { IAIAdapter } = require("../adapter-interface");
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -33,6 +33,7 @@ interface AdapterCompleteRequest {
   model: string;
   maxOutputTokens: number;
   schema?: Record<string, unknown> | null;
+  apiKeyEnv?: string;
 }
 
 interface AdapterCompleteResponse {
@@ -46,16 +47,31 @@ interface AdapterCompleteResponse {
   response?: Record<string, unknown> | null;
 }
 
-let _client: any = null;
+const _clients = new Map<string, any>();
 
-function _getClient(): any {
-  if (_client) return _client;
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXUS_ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+function _getClient(apiKeyEnv?: string): any {
+  const cacheKey = typeof apiKeyEnv === "string" && apiKeyEnv.trim() ? apiKeyEnv.trim() : "__default__";
+  const cached = _clients.get(cacheKey);
+  if (cached) return cached;
+
+  let apiKey: string | undefined;
+  if (cacheKey !== "__default__") {
+    apiKey = process.env[cacheKey];
+    if (!apiKey) {
+      throw new Error(`Anthropic API key not set. Expected environment variable: ${cacheKey}`);
+    }
+  } else {
+    apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXUS_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error("Anthropic API key not set. Expected environment variable: ANTHROPIC_API_KEY or NEXUS_ANTHROPIC_API_KEY");
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const Anthropic = require("@anthropic-ai/sdk");
-  _client = new Anthropic.default({ apiKey });
-  return _client;
+  const client = new Anthropic.default({ apiKey });
+  _clients.set(cacheKey, client);
+  return client;
 }
 
 class AnthropicAPIAdapter extends IAIAdapter {
@@ -64,7 +80,7 @@ class AnthropicAPIAdapter extends IAIAdapter {
   }
 
   async complete(req: AdapterCompleteRequest): Promise<AdapterCompleteResponse> {
-    const client = _getClient();
+    const client = _getClient(req.apiKeyEnv);
     const isChatMode = Array.isArray(req.messages);
 
     // Build messages: prompt-mode wraps single prompt; chat-mode passes through.

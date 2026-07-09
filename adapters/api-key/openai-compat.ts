@@ -12,7 +12,7 @@
 // Translates Anthropic-shape messages/tools into OpenAI shape and back so the
 // gateway exposes one consistent API regardless of provider.
 
-const { IAIAdapter } = require("./adapter-interface");
+const { IAIAdapter } = require("../adapter-interface");
 
 const REQUEST_TIMEOUT_MS = 60_000;
 

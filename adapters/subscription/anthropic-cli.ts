@@ -12,10 +12,10 @@
 // for session_5h / weekly_7d / rate_limit. Throw ClaudeCliLimitError on hit.
 
 const { spawn } = require("child_process");
-const { IAIAdapter } = require("./adapter-interface");
-const limitState = require("../lib/claude-limit/state");
-const { detectClaudeLimit } = require("../lib/claude-limit/detect");
-const { ClaudeCliLimitError } = require("../lib/claude-limit/error");
+const { IAIAdapter } = require("../adapter-interface");
+const limitState = require("../../lib/claude-limit/state");
+const { detectClaudeLimit } = require("../../lib/claude-limit/detect");
+const { ClaudeCliLimitError } = require("../../lib/claude-limit/error");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 

@@ -8,7 +8,7 @@
 // Mirrors src/app/modules/rag/lib/embed.ts (which this replaces in Phase 3c).
 // Sub-batches to BATCH inputs/call to keep request size sane.
 
-const { IEmbedAdapter } = require("./adapter-interface");
+const { IEmbedAdapter } = require("../adapter-interface");
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const BATCH = 100;

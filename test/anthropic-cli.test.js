@@ -44,7 +44,7 @@ function _withSpawn(stub, fn) {
 // Adapter is required AFTER possibly replacing spawn, but it captures `spawn`
 // at module top-level. Bust the cache so each test gets a fresh require.
 function _loadAdapter() {
-  const adapterPath = path.join(__dirname, "..", "dist", "adapters", "anthropic-cli.js");
+  const adapterPath = path.join(__dirname, "..", "dist", "adapters", "subscription", "anthropic-cli.js");
   delete require.cache[require.resolve(adapterPath)];
   return require(adapterPath).AnthropicCLIAdapter;
 }
