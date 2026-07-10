@@ -29,7 +29,16 @@ function _load() {
 
 function _mockFetch(handler) {
   const orig = globalThis.fetch;
-  globalThis.fetch = handler;
+  // Adapters now read the non-stream body via resp.text() (to strip proxy SSE
+  // tails). Auto-derive text() from json() so mocks that only define json still
+  // work: text() returns the JSON-stringified payload.
+  globalThis.fetch = async (...args) => {
+    const resp = await handler(...args);
+    if (resp && typeof resp.json === "function" && typeof resp.text !== "function") {
+      resp.text = async () => JSON.stringify(await resp.json());
+    }
+    return resp;
+  };
   return () => { globalThis.fetch = orig; };
 }
 

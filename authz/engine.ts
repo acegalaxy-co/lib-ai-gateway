@@ -15,7 +15,6 @@
 
 import path = require("path");
 import fs = require("fs");
-import env = require("../lib/env");
 
 interface TierBinding {
   // New (preferred): reference a row in llmModels registry.
@@ -142,6 +141,28 @@ function _loadModels(): Record<string, ModelRow> {
   return _models as Record<string, ModelRow>;
 }
 
+// Per-vendor LLM endpoint switch (2026-07-10). Each vendor gets 1 env var;
+// empty/unset = direct/original API, non-empty = route through that endpoint
+// (e.g. 9router proxy http://127.0.0.1:20128/v1). Gemini is OAuth
+// account-based (no HTTP base_url hook) — N/A, not resolved here.
+// See .claude/rules/system-ai-gateway.md.
+function _resolveVendorEndpoint(provider: string): string | null {
+  let value: string | undefined;
+  if (provider === "anthropic-api" || provider === "anthropic-cli") {
+    // Backward-compat: fall back to legacy ANTHROPIC_BASE_URL if the new
+    // per-vendor var is unset.
+    value = process.env.NEXUS_CLAUDE_BASE_URL || process.env.ANTHROPIC_BASE_URL;
+  } else if (provider === "codex-cli") {
+    value = process.env.NEXUS_CODEX_BASE_URL;
+  } else if (provider === "deepseek-api") {
+    value = process.env.NEXUS_DEEPSEEK_BASE_URL;
+  } else {
+    return null;
+  }
+  const trimmed = (value || "").trim();
+  return trimmed || null;
+}
+
 // Test helper — return active layer name (used by tests only).
 function _modelsSource(): "cache" | "config" | "empty" {
   const repo = _repoRoot();
@@ -199,7 +220,8 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
       if (row.provider === "anthropic") effectiveProvider = "anthropic-cli";
       else if (row.provider === "openai-compat") {
         if (row.id && row.id.startsWith("gemini")) effectiveProvider = "gemini-cli";
-        else if (row.id === "o1" || (row.id && row.id.startsWith("gpt-5-codex"))) effectiveProvider = "codex-cli";
+        // Codex CLI: o1, gpt-5-codex*, or any gpt-5* subscription (9router cx/ models).
+        else if (row.id === "o1" || (row.id && (row.id.startsWith("gpt-5-codex") || row.id.startsWith("gpt-5")))) effectiveProvider = "codex-cli";
         else effectiveProvider = row.provider;
       }
     } else if (row.type === "API Key") {
@@ -233,12 +255,39 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
     return { allow: false, reason: "invalid tier binding" };
   }
 
+  // Per-vendor endpoint switch (2026-07-10) — overrides registry/binding baseUrl
+  // when the vendor's NEXUS_<VENDOR>_BASE_URL env var is set.
+  const vEp = _resolveVendorEndpoint(resolvedProvider);
+  if (vEp) resolvedBaseUrl = vEp;
+
   // Model-id normalization for Anthropic providers.
   // 9router proxy (local) requires 'cc/' prefix; production API uses bare IDs.
-  const _isLocal = env.isLocalEndpoint();
+  // Local-ness is decided by the Claude vendor endpoint specifically (not the
+  // generic env.isLocalEndpoint(), which only inspects legacy ANTHROPIC_BASE_URL).
+  const _claudeEndpoint = process.env.NEXUS_CLAUDE_BASE_URL || process.env.ANTHROPIC_BASE_URL || "";
+  const _isLocal = /127\.0\.0\.1:20128|9router/.test(_claudeEndpoint);
   if (resolvedProvider.startsWith('anthropic')) {
     if (_isLocal && !resolvedModel.startsWith('cc/')) resolvedModel = 'cc/' + resolvedModel;
     else if (!_isLocal && resolvedModel.startsWith('cc/')) resolvedModel = resolvedModel.slice(3);
+  }
+
+  // Model-id normalization for DeepSeek via 9router proxy: requires 'ds/' prefix
+  // (9router routes ds/deepseek-v4-pro); direct api.deepseek.com uses bare id.
+  // Local-ness decided by the resolved baseUrl (the DeepSeek vendor endpoint).
+  if (resolvedProvider === 'deepseek-api') {
+    const _dsLocal = /127\.0\.0\.1:20128|9router/.test(resolvedBaseUrl || "");
+    if (_dsLocal && !resolvedModel.startsWith('ds/')) resolvedModel = 'ds/' + resolvedModel;
+    else if (!_dsLocal && resolvedModel.startsWith('ds/')) resolvedModel = resolvedModel.slice(3);
+  }
+
+  // Model-id normalization for Codex via 9router proxy: requires 'cx/' prefix
+  // (9router routes cx/gpt-5.5 etc.); direct codex config uses bare id.
+  // Local-ness decided by the Codex vendor endpoint (NEXUS_CODEX_BASE_URL).
+  if (resolvedProvider === 'codex-cli') {
+    const _cxEndpoint = process.env.NEXUS_CODEX_BASE_URL || resolvedBaseUrl || "";
+    const _cxLocal = /127\.0\.0\.1:20128|9router/.test(_cxEndpoint);
+    if (_cxLocal && !resolvedModel.startsWith('cx/')) resolvedModel = 'cx/' + resolvedModel;
+    else if (!_cxLocal && resolvedModel.startsWith('cx/')) resolvedModel = resolvedModel.slice(3);
   }
 
   // Provider-specific binding validation.

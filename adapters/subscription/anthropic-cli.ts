@@ -35,6 +35,9 @@ interface AdapterCompleteRequest {
   // MCP server config — loads mcpServers definition for tool_use.
   // Used by crawler (CloakBrowser) + any skill needing MCP tools.
   mcpConfigPath?: string;
+  // Endpoint override (resolved by authz/engine.ts from NEXUS_CLAUDE_BASE_URL,
+  // 2026-07-10). Empty/unset → CLI falls back to its own default (direct API).
+  baseUrl?: string;
 }
 
 interface AdapterCompleteResponse {
@@ -92,10 +95,15 @@ class AnthropicCLIAdapter extends IAIAdapter {
       if (req.mcpConfigPath) argv.push("--mcp-config", req.mcpConfigPath);
       argv.push("-p", cleanPrompt);
 
+      // Endpoint switch (2026-07-10): pass resolved baseUrl into the child's
+      // env explicitly rather than relying on inherited process env, so the
+      // per-vendor NEXUS_CLAUDE_BASE_URL override (or empty → direct API)
+      // always wins regardless of what the parent process has set.
       const child = spawn(cmd, argv, {
         timeout,
         killSignal: "SIGKILL",
         stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, ANTHROPIC_BASE_URL: String(req.baseUrl || "").trim() },
       });
       let out = "";
       let err = "";

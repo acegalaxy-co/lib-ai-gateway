@@ -118,8 +118,17 @@ class DeepSeekAdapter extends IAIAdapter {
       return await _consumeStream(resp, req);
     }
 
-    // Non-streaming path.
-    const data: any = await resp.json();
+    // Non-streaming path. Some proxies (e.g. 9router) append an SSE terminator
+    // (`data: [DONE]`) after the JSON body even for non-stream requests, which
+    // breaks resp.json(). Read as text and parse only the leading JSON object.
+    const raw = await resp.text();
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch (_e) {
+      const cleaned = raw.replace(/\s*data:\s*\[DONE\]\s*$/i, "").trim();
+      data = JSON.parse(cleaned);
+    }
     const choice = data?.choices?.[0];
     const usage = {
       input_tokens: data?.usage?.prompt_tokens || 0,

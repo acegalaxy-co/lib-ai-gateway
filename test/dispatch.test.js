@@ -272,19 +272,19 @@ test("authz modelKey routing: codex_cli uses codex-cli subscription route", asyn
   const result = await _checkModelKeyRouting("codex_cli");
   assert.equal(result.allow, true);
   assert.equal(result.provider, "codex-cli");
-  assert.equal(result.model, "o1");
+  assert.equal(result.model, "gpt-5.5");
 });
 
-test("authz modelKey routing: sonnet uses anthropic-api api-key route", async () => {
-  const result = await _checkModelKeyRouting("sonnet");
+test("authz modelKey routing: sonnet_api uses anthropic-api api-key route", async () => {
+  const result = await _checkModelKeyRouting("sonnet_api");
   assert.equal(result.allow, true);
   assert.equal(result.provider, "anthropic-api");
   assert.equal(result.model, "claude-sonnet-4-6");
   assert.equal(result.apiKeyEnv, "NEXUS_ANTHROPIC_API_KEY");
 });
 
-test("authz modelKey routing: deepseek uses dedicated deepseek-api route", async () => {
-  const result = await _checkModelKeyRouting("deepseek");
+test("authz modelKey routing: deepseek_api uses dedicated deepseek-api route", async () => {
+  const result = await _checkModelKeyRouting("deepseek_api");
   assert.equal(result.allow, true);
   assert.equal(result.provider, "deepseek-api");
   assert.equal(result.model, "deepseek-v4-pro");

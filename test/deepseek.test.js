@@ -32,13 +32,15 @@ test("deepseek-api: success path returns text + token usage, correct URL/auth/mo
     assert.equal(body.max_tokens, 512);
     assert.equal(body.messages[0].content, "hello");
     assert.equal(opts.headers["Authorization"], "Bearer test-key-deepseek");
+    const payload = {
+      choices: [{ message: { content: "hi back" } }],
+      usage: { prompt_tokens: 5, completion_tokens: 3 },
+    };
     return {
       ok: true,
       status: 200,
-      json: async () => ({
-        choices: [{ message: { content: "hi back" } }],
-        usage: { prompt_tokens: 5, completion_tokens: 3 },
-      }),
+      text: async () => JSON.stringify(payload),
+      json: async () => payload,
     };
   });
   process.env.TEST_DEEPSEEK_KEY = "test-key-deepseek";
@@ -62,17 +64,45 @@ test("deepseek-api: success path returns text + token usage, correct URL/auth/mo
   }
 });
 
+test("deepseek-api: strips SSE 'data: [DONE]' tail after JSON (9router quirk)", async () => {
+  const payload = {
+    choices: [{ message: { content: "OK" } }],
+    usage: { prompt_tokens: 10, completion_tokens: 2 },
+  };
+  const restore = _mockFetch(async () => ({
+    ok: true,
+    status: 200,
+    // 9router appends an SSE terminator even for non-stream requests.
+    text: async () => JSON.stringify(payload) + "data: [DONE]\n\n",
+    json: async () => { throw new SyntaxError("Unexpected non-whitespace character after JSON"); },
+  }));
+  process.env.TEST_DEEPSEEK_KEY = "test-key-deepseek";
+  try {
+    const adapter = new DeepSeekAdapter();
+    const r = await adapter.complete({
+      prompt: "hi",
+      model: "ds/deepseek-v4-pro",
+      maxOutputTokens: 20,
+      baseUrl: "http://127.0.0.1:20128/v1",
+      apiKeyEnv: "TEST_DEEPSEEK_KEY",
+    });
+    assert.equal(r.text, "OK", "SSE tail stripped, JSON parsed");
+    assert.equal(r.tokensOut, 2);
+  } finally {
+    restore();
+    delete process.env.TEST_DEEPSEEK_KEY;
+  }
+});
+
 test("deepseek-api: schema set → response_format json_object enforced in request", async () => {
   let observedBody = null;
   const restore = _mockFetch(async (_url, opts) => {
     observedBody = JSON.parse(opts.body);
-    return {
-      ok: true, status: 200,
-      json: async () => ({
-        choices: [{ message: { content: '{"vendor":"Anthropic","amount":20}' } }],
-        usage: { prompt_tokens: 10, completion_tokens: 8 },
-      }),
+    const payload = {
+      choices: [{ message: { content: '{"vendor":"Anthropic","amount":20}' } }],
+      usage: { prompt_tokens: 10, completion_tokens: 8 },
     };
+    return { ok: true, status: 200, text: async () => JSON.stringify(payload), json: async () => payload };
   });
   process.env.TEST_KEY = "test";
   try {
@@ -96,6 +126,7 @@ test("deepseek-api: no schema → response_format omitted", async () => {
     observedBody = JSON.parse(opts.body);
     return {
       ok: true, status: 200,
+      text: async () => JSON.stringify({ choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }),
       json: async () => ({ choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }),
     };
   });
@@ -114,19 +145,21 @@ test("deepseek-api: no schema → response_format omitted", async () => {
 });
 
 test("deepseek-api: reasoning_content (thinking mode) not leaked into text on tool_calls path", async () => {
+  const _toolPayload = {
+    choices: [{
+      finish_reason: "tool_calls",
+      message: {
+        content: "final answer",
+        reasoning_content: "step-by-step internal reasoning",
+        tool_calls: [{ id: "call_1", function: { name: "lookup", arguments: '{"q":"x"}' } }],
+      },
+    }],
+    usage: { prompt_tokens: 4, completion_tokens: 6 },
+  };
   const restore = _mockFetch(async () => ({
     ok: true, status: 200,
-    json: async () => ({
-      choices: [{
-        finish_reason: "tool_calls",
-        message: {
-          content: "final answer",
-          reasoning_content: "step-by-step internal reasoning",
-          tool_calls: [{ id: "call_1", function: { name: "lookup", arguments: '{"q":"x"}' } }],
-        },
-      }],
-      usage: { prompt_tokens: 4, completion_tokens: 6 },
-    }),
+    text: async () => JSON.stringify(_toolPayload),
+    json: async () => _toolPayload,
   }));
   process.env.TEST_KEY = "test";
   try {

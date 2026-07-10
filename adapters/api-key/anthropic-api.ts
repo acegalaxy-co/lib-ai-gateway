@@ -34,6 +34,9 @@ interface AdapterCompleteRequest {
   maxOutputTokens: number;
   schema?: Record<string, unknown> | null;
   apiKeyEnv?: string;
+  // Endpoint override (resolved by authz/engine.ts from NEXUS_CLAUDE_BASE_URL,
+  // 2026-07-10). Empty/unset → SDK default (direct api.anthropic.com).
+  baseUrl?: string;
 }
 
 interface AdapterCompleteResponse {
@@ -49,16 +52,20 @@ interface AdapterCompleteResponse {
 
 const _clients = new Map<string, any>();
 
-function _getClient(apiKeyEnv?: string): any {
-  const cacheKey = typeof apiKeyEnv === "string" && apiKeyEnv.trim() ? apiKeyEnv.trim() : "__default__";
+function _getClient(apiKeyEnv?: string, baseUrl?: string): any {
+  const keyPart = typeof apiKeyEnv === "string" && apiKeyEnv.trim() ? apiKeyEnv.trim() : "__default__";
+  // Cache key includes baseUrl (2026-07-10) — a client cached under a bare
+  // apiKeyEnv key must not be reused once the vendor endpoint override
+  // changes, or calls would silently keep hitting a stale endpoint.
+  const cacheKey = `${keyPart}|${baseUrl || ""}`;
   const cached = _clients.get(cacheKey);
   if (cached) return cached;
 
   let apiKey: string | undefined;
-  if (cacheKey !== "__default__") {
-    apiKey = process.env[cacheKey];
+  if (keyPart !== "__default__") {
+    apiKey = process.env[keyPart];
     if (!apiKey) {
-      throw new Error(`Anthropic API key not set. Expected environment variable: ${cacheKey}`);
+      throw new Error(`Anthropic API key not set. Expected environment variable: ${keyPart}`);
     }
   } else {
     apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXUS_ANTHROPIC_API_KEY;
@@ -69,7 +76,9 @@ function _getClient(apiKeyEnv?: string): any {
 
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const Anthropic = require("@anthropic-ai/sdk");
-  const client = new Anthropic.default({ apiKey });
+  const opts: Record<string, unknown> = { apiKey };
+  if (baseUrl) opts.baseURL = baseUrl;
+  const client = new Anthropic.default(opts);
   _clients.set(cacheKey, client);
   return client;
 }
@@ -80,7 +89,7 @@ class AnthropicAPIAdapter extends IAIAdapter {
   }
 
   async complete(req: AdapterCompleteRequest): Promise<AdapterCompleteResponse> {
-    const client = _getClient(req.apiKeyEnv);
+    const client = _getClient(req.apiKeyEnv, req.baseUrl);
     const isChatMode = Array.isArray(req.messages);
 
     // Build messages: prompt-mode wraps single prompt; chat-mode passes through.

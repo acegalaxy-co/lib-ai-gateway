@@ -13,12 +13,13 @@
 
 const { spawn } = require("child_process");
 const { IAIAdapter } = require("../adapter-interface");
-const { isLocalEndpoint } = require("../../lib/env");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 
-// 9router proxy endpoint used on LOCAL (mirrors anthropic-cli's ANTHROPIC_BASE_URL).
-// PROD leaves the provider endpoint to codex's own config (api.openai.com).
+// 9router proxy endpoint reference (mirrors anthropic-cli's ANTHROPIC_BASE_URL).
+// Kept for docs/callers; actual selection is via NEXUS_CODEX_BASE_URL, resolved
+// by authz/engine.ts and injected as req.baseUrl (2026-07-10). PROD (unset)
+// leaves the provider endpoint to codex's own config (api.openai.com).
 const NINEROUTER_BASE_URL = "http://127.0.0.1:20128/v1";
 const CODEX_PROVIDER_KEY = "9router"; // matches [model_providers.9router] in ~/.codex/config.toml
 
@@ -72,12 +73,12 @@ class CodexCLIAdapter extends IAIAdapter {
       const modelArg = String(req.model || "").trim();
       if (modelArg) argv.push("-m", modelArg);
 
-      // Endpoint switch (env-aware, mirrors anthropic-cli's ANTHROPIC_BASE_URL).
-      // On LOCAL we override the codex provider's base_url to the 9router proxy
-      // via `-c` so we don't depend on a static ~/.codex/config.toml. An explicit
-      // req.baseUrl (from a Notion row / modelOverride) wins over the default.
-      // On PROD we leave codex's own provider config untouched.
-      const _endpoint = String(req.baseUrl || "").trim() || (isLocalEndpoint() ? NINEROUTER_BASE_URL : "");
+      // Endpoint switch (2026-07-10): req.baseUrl is resolved by authz/engine.ts
+      // from NEXUS_CODEX_BASE_URL. Empty/unset → leave codex's own provider
+      // config untouched (direct api.openai.com). Non-empty → override the
+      // codex provider's base_url via `-c` so we don't depend on a static
+      // ~/.codex/config.toml.
+      const _endpoint = String(req.baseUrl || "").trim();
       if (_endpoint) {
         argv.push("-c", `model_providers.${CODEX_PROVIDER_KEY}.base_url="${_endpoint}"`);
       }
