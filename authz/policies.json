@@ -34,8 +34,10 @@
       "dailyTokenQuota": 200000
     },
     "invoice-enrich.classify": {
+      "_doc": "PDF text pre-extracted via pdftotext before prompt build (no Read tool needed). balanced=anthropic-cli (subscription, allowedTools kept for legacy no-op); deep=deepseek-api fallback when CLI session/login unavailable (L1/L4 deny) — independent API key, text-only prompt.",
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 180000, "allowedTools": "Read" }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 180000, "allowedTools": "Read" },
+        "deep":     { "modelKey": "deepseek_api", "timeoutMs": 120000 }
       },
       "maxOutputTokens": 2048,
       "dailyTokenQuota": 500000
