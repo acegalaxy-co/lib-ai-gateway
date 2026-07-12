@@ -32,7 +32,7 @@
       "_doc": "Daily AI/tech news brief. balanced=anthropic-cli (WebSearch agentic, subscription). deep=gemini-cli fallback when CLI login expired (L1/L4 deny) — Gemini CLI has built-in web grounding (DeepSeek can't, no search). timeoutMs 600000 = 10min (many platform queries).",
       "tiers": {
         "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 600000, "allowedTools": "Bash,Read,Write,WebSearch,WebFetch,ToolSearch,Glob,Grep" },
-        "deep":     { "modelKey": "gemini_cli", "timeoutMs": 600000 }
+        "deep":     { "provider": "gemini-cli", "model": "gemini-2.5-pro", "timeoutMs": 600000 }
       },
       "maxOutputTokens": 4096,
       "dailyTokenQuota": 500000
