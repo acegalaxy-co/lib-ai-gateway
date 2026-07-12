@@ -11,9 +11,11 @@
       "dailyTokenQuota": 2000000
     },
     "invoice-enrich.summarize": {
+      "_doc": "Email body pre-extracted (no Read tool needed). deep=deepseek-api fallback when CLI session/login unavailable (L1/L4 deny) — independent API key, text-only prompt.",
       "tiers": {
         "fast":     { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 90000 },
-        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 90000 }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 90000 },
+        "deep":     { "modelKey": "deepseek_api", "timeoutMs": 90000 }
       },
       "maxOutputTokens": 2048,
       "dailyTokenQuota": 500000
@@ -43,8 +45,10 @@
       "dailyTokenQuota": 500000
     },
     "invoice-enrich.scan": {
+      "_doc": "PDF text pre-extracted via pdftotext before prompt build (no Read tool needed). deep=deepseek-api fallback when CLI session/login unavailable (L1/L4 deny) — independent API key, text-only prompt.",
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 90000 }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 90000 },
+        "deep":     { "modelKey": "deepseek_api", "timeoutMs": 90000 }
       },
       "maxOutputTokens": 2048,
       "dailyTokenQuota": 500000
@@ -105,10 +109,11 @@
       "dailyTokenQuota": 5000000
     },
     "sensitive-audit.classify": {
-      "_doc": "Tier 2 detector for sensitive-data audit. 1 LLM call per ambiguous page/file (regex confidence 0.55-0.7). Daily scope: up to MAX_NOTION_PAGES + MAX_DRIVE_FILES (500+500=1000). Conservative quota (1M tokens/day) covers worst case.",
+      "_doc": "Tier 2 detector for sensitive-data audit. 1 LLM call per ambiguous page/file (regex confidence 0.55-0.7). Daily scope: up to MAX_NOTION_PAGES + MAX_DRIVE_FILES (500+500=1000). Conservative quota (1M tokens/day) covers worst case. deep=deepseek-api fallback when CLI session/login unavailable (L1/L4 deny) — independent API key, text-only prompt.",
       "tiers": {
         "fast":     { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 30000 },
-        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 60000 }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 60000 },
+        "deep":     { "modelKey": "deepseek_api", "timeoutMs": 60000 }
       },
       "maxOutputTokens": 8,
       "dailyTokenQuota": 1000000
