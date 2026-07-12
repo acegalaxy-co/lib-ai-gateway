@@ -103,6 +103,24 @@ test("anthropic-cli: non-zero exit → reject with stderr", async () => {
   });
 });
 
+test("anthropic-cli: non-zero exit with error on STDOUT only → surfaced in message", async () => {
+  // Regression: claude CLI prints 401 auth error to stdout (not stderr) then
+  // exits non-zero. Old code used stderr-only → "claude exit 1:" empty message.
+  const stub = _makeStub(
+    ['Failed to authenticate. API Error: 401 {"type":"authentication_error"}'],
+    [],
+    1,
+  );
+  await _withSpawn(stub, async () => {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const adapter = new AnthropicCLIAdapter();
+    await assert.rejects(
+      () => adapter.complete({ prompt: "x", model: "m", maxOutputTokens: 100 }),
+      /claude exit 1.*401.*authentication/,
+    );
+  });
+});
+
 test("anthropic-cli: timeout signal → reject with kill reason", async () => {
   const stub = _makeStub([], [], null, "SIGKILL");
   await _withSpawn(stub, async () => {

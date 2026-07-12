@@ -113,14 +113,19 @@ class AnthropicCLIAdapter extends IAIAdapter {
       child.on("close", (code: number | null, signal: string | null) => {
         if (signal) return reject(new Error(`claude killed (${signal}) — timeout?`));
         if (code !== 0) {
-          // Try to detect limit hit from stderr.
-          const match = detectClaudeLimit(err);
+          // CLI prints auth/usage errors to stdout OR stderr depending on
+          // failure mode (401 auth → stdout; some limits → stderr). Combine
+          // both so detection + the surfaced message never come back empty.
+          const diag = [err.trim(), out.trim()].filter(Boolean).join(" | ");
+          // Try to detect limit hit from combined output.
+          const match = detectClaudeLimit(diag);
           if (match) {
             limitState.markLimitHit(skill, match);
             return reject(new ClaudeCliLimitError(skill, match));
           }
-          // Generic error.
-          return reject(new Error(`claude exit ${code}: ${err.slice(0, 300)}`));
+          // Generic error — include combined diag (was stderr-only → empty on
+          // stdout-only failures like the 401 auth error).
+          return reject(new Error(`claude exit ${code}: ${(diag || "(no output)").slice(0, 300)}`));
         }
         const trimmed = out.trim();
         if (!trimmed) return reject(new Error("claude returned empty output"));
