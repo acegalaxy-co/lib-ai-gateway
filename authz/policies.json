@@ -29,11 +29,13 @@
       "dailyTokenQuota": 500000
     },
     "kane.ai-news-brief": {
+      "_doc": "Daily AI/tech news brief. balanced=anthropic-cli (WebSearch agentic, subscription). deep=gemini-cli fallback when CLI login expired (L1/L4 deny) — Gemini CLI has built-in web grounding (DeepSeek can't, no search). timeoutMs 600000 = 10min (many platform queries).",
       "tiers": {
-        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 120000, "allowedTools": "WebSearch" }
+        "balanced": { "provider": "anthropic-cli", "modelKey": "sonnet_api", "timeoutMs": 600000, "allowedTools": "Bash,Read,Write,WebSearch,WebFetch,ToolSearch,Glob,Grep" },
+        "deep":     { "modelKey": "gemini_cli", "timeoutMs": 600000 }
       },
       "maxOutputTokens": 4096,
-      "dailyTokenQuota": 200000
+      "dailyTokenQuota": 500000
     },
     "invoice-enrich.classify": {
       "_doc": "PDF text pre-extracted via pdftotext before prompt build (no Read tool needed). balanced=anthropic-cli (subscription, allowedTools kept for legacy no-op); deep=deepseek-api fallback when CLI session/login unavailable (L1/L4 deny) — independent API key, text-only prompt.",
