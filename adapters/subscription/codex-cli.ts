@@ -16,11 +16,9 @@ const { IAIAdapter } = require("../adapter-interface");
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 
-// 9router proxy endpoint reference (mirrors anthropic-cli's ANTHROPIC_BASE_URL).
-// Kept for docs/callers; actual selection is via NEXUS_CODEX_BASE_URL, resolved
-// by authz/engine.ts and injected as req.baseUrl (2026-07-10). PROD (unset)
-// leaves the provider endpoint to codex's own config (api.openai.com).
-const NINEROUTER_BASE_URL = "http://127.0.0.1:20128/v1";
+// 9router base_url is resolved by authz/engine.ts and injected as req.baseUrl
+// (2026-07-10). PROD (unset) leaves the provider endpoint to codex's own
+// config (api.openai.com).
 const CODEX_PROVIDER_KEY = "9router"; // matches [model_providers.9router] in ~/.codex/config.toml
 
 interface AdapterCompleteRequest {

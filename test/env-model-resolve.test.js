@@ -52,7 +52,7 @@ function _withBaseUrl(value, fn) {
 }
 
 test("LOCAL (9router base url): anthropic model gets cc/ prefix", async () => {
-  const r = await _withBaseUrl("http://127.0.0.1:20128/v1", () => {
+  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () => {
     const authz = _loadEngine();
     return authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
   });
@@ -77,7 +77,7 @@ test("PROD (no base url): anthropic model stays bare (no cc/ prefix)", async () 
 
 test("idempotent: LOCAL twice yields identical prefixed model", async () => {
   const run = () =>
-    _withBaseUrl("http://127.0.0.1:20128/v1", () => {
+    _withBaseUrl("https://9router.acegalaxy.co/v1", () => {
       const authz = _loadEngine();
       return authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
     });
@@ -89,7 +89,7 @@ test("idempotent: LOCAL twice yields identical prefixed model", async () => {
 });
 
 test("openai-compat provider is NOT touched by cc/ normalization (local)", async () => {
-  const r = await _withBaseUrl("http://127.0.0.1:20128/v1", () => {
+  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () => {
     const authz = _loadEngine();
     return authz.check(OPENAI_SKILL, OPENAI_TIER);
   });

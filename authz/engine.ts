@@ -143,7 +143,7 @@ function _loadModels(): Record<string, ModelRow> {
 
 // Per-vendor LLM endpoint switch (2026-07-10). Each vendor gets 1 env var;
 // empty/unset = direct/original API, non-empty = route through that endpoint
-// (e.g. 9router proxy http://127.0.0.1:20128/v1). Gemini is OAuth
+// (e.g. 9router proxy). Gemini is OAuth
 // account-based (no HTTP base_url hook) — N/A, not resolved here.
 // See .claude/rules/system-ai-gateway.md.
 function _resolveVendorEndpoint(provider: string): string | null {
@@ -260,12 +260,47 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
   const vEp = _resolveVendorEndpoint(resolvedProvider);
   if (vEp) resolvedBaseUrl = vEp;
 
+  // DeepSeek-via-9router toggle (2026-07-15): NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE
+  // flag reuses the existing NEXUS_9ROUTER_BASE_URL + NEXUS_9ROUTER_TOKEN
+  // (shared with Claude/Codex 9router routing) so DeepSeek can run through
+  // 9router without duplicating credentials. Wins over NEXUS_DEEPSEEK_BASE_URL
+  // when both are set; stays side-by-side with direct api.deepseek.com when
+  // off. Prefix ds/ auto-applies below since resolvedBaseUrl contains '9router'.
+  const _9rDsFlag = (process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE || "").trim().toLowerCase();
+  if (resolvedProvider === "deepseek-api" && (_9rDsFlag === "1" || _9rDsFlag === "true")) {
+    resolvedBaseUrl = process.env.NEXUS_9ROUTER_BASE_URL;
+    resolvedApiKeyEnv = "NEXUS_9ROUTER_TOKEN";
+  }
+
+  // DeepSeek key auto-match to resolved base (2026-07-15): base routed through
+  // 9router proxy → use the 9router token; direct api.deepseek.com base →
+  // keep the registry-seeded NEXUS_DEEPSEEK_API_KEY. Lets NEXUS_DEEPSEEK_BASE_URL
+  // alone toggle between the two vendors without overloading one key — both
+  // stay valid side by side.
+  if (resolvedProvider === "deepseek-api" && /9router/.test(resolvedBaseUrl || "")) {
+    resolvedApiKeyEnv = "NEXUS_9ROUTER_TOKEN";
+  }
+
+  // Codex-via-9router toggle (2026-07-15): NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE flag
+  // reuses NEXUS_9ROUTER_BASE_URL + NEXUS_9ROUTER_TOKEN (shared with Claude/
+  // DeepSeek 9router routing). Needed because PROD runs codex-cli through
+  // 9router while local config.toml base_url stays on a local proxy — flag lets
+  // PROD opt in without touching NEXUS_CODEX_BASE_URL. codex-cli subscription
+  // doesn't read the key but it's set for audit-log consistency (harmless).
+  // Wins over NEXUS_CODEX_BASE_URL when both set; off = unchanged behavior.
+  const _9rCxFlag = (process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE || "").trim().toLowerCase();
+  const _9rCxOn = resolvedProvider === "codex-cli" && (_9rCxFlag === "1" || _9rCxFlag === "true");
+  if (_9rCxOn) {
+    resolvedBaseUrl = process.env.NEXUS_9ROUTER_BASE_URL;
+    resolvedApiKeyEnv = "NEXUS_9ROUTER_TOKEN";
+  }
+
   // Model-id normalization for Anthropic providers.
   // 9router proxy (local) requires 'cc/' prefix; production API uses bare IDs.
   // Local-ness is decided by the Claude vendor endpoint specifically (not the
   // generic env.isLocalEndpoint(), which only inspects legacy ANTHROPIC_BASE_URL).
   const _claudeEndpoint = process.env.NEXUS_CLAUDE_BASE_URL || process.env.ANTHROPIC_BASE_URL || "";
-  const _isLocal = /127\.0\.0\.1:20128|9router/.test(_claudeEndpoint);
+  const _isLocal = /9router/.test(_claudeEndpoint);
   if (resolvedProvider.startsWith('anthropic')) {
     if (_isLocal && !resolvedModel.startsWith('cc/')) resolvedModel = 'cc/' + resolvedModel;
     else if (!_isLocal && resolvedModel.startsWith('cc/')) resolvedModel = resolvedModel.slice(3);
@@ -275,17 +310,19 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
   // (9router routes ds/deepseek-v4-pro); direct api.deepseek.com uses bare id.
   // Local-ness decided by the resolved baseUrl (the DeepSeek vendor endpoint).
   if (resolvedProvider === 'deepseek-api') {
-    const _dsLocal = /127\.0\.0\.1:20128|9router/.test(resolvedBaseUrl || "");
+    const _dsLocal = /9router/.test(resolvedBaseUrl || "");
     if (_dsLocal && !resolvedModel.startsWith('ds/')) resolvedModel = 'ds/' + resolvedModel;
     else if (!_dsLocal && resolvedModel.startsWith('ds/')) resolvedModel = resolvedModel.slice(3);
   }
 
   // Model-id normalization for Codex via 9router proxy: requires 'cx/' prefix
   // (9router routes cx/gpt-5.5 etc.); direct codex config uses bare id.
-  // Local-ness decided by the Codex vendor endpoint (NEXUS_CODEX_BASE_URL).
+  // Local-ness decided by the Codex vendor endpoint (NEXUS_CODEX_BASE_URL) —
+  // unless NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE flag already forced resolvedBaseUrl to
+  // 9router, in which case that wins (flag must beat NEXUS_CODEX_BASE_URL).
   if (resolvedProvider === 'codex-cli') {
-    const _cxEndpoint = process.env.NEXUS_CODEX_BASE_URL || resolvedBaseUrl || "";
-    const _cxLocal = /127\.0\.0\.1:20128|9router/.test(_cxEndpoint);
+    const _cxEndpoint = _9rCxOn ? (resolvedBaseUrl || "") : (process.env.NEXUS_CODEX_BASE_URL || resolvedBaseUrl || "");
+    const _cxLocal = /9router/.test(_cxEndpoint);
     if (_cxLocal && !resolvedModel.startsWith('cx/')) resolvedModel = 'cx/' + resolvedModel;
     else if (!_cxLocal && resolvedModel.startsWith('cx/')) resolvedModel = resolvedModel.slice(3);
   }

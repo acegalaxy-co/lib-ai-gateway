@@ -83,7 +83,7 @@ test("deepseek-api: strips SSE 'data: [DONE]' tail after JSON (9router quirk)", 
       prompt: "hi",
       model: "ds/deepseek-v4-pro",
       maxOutputTokens: 20,
-      baseUrl: "http://127.0.0.1:20128/v1",
+      baseUrl: "https://9router.acegalaxy.co/v1",
       apiKeyEnv: "TEST_DEEPSEEK_KEY",
     });
     assert.equal(r.text, "OK", "SSE tail stripped, JSON parsed");
