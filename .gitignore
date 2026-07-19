@@ -1,5 +1,4 @@
 node_modules/
-dist/
 audit/audit.log
 audit/*.log
 test/.tmp-audit*.log

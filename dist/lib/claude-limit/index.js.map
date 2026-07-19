@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../lib/claude-limit/index.ts"],"names":[],"mappings":"AAAA,YAAY,CAAC;AAEb,+CAA+C;AAC/C,4EAA4E;AAC5E,2EAA2E;AAC3E,sEAAsE;AAEtE,mCAAoC;AACpC,iCAAkC;AAClC,iCAAkC;AAClC,iCAAkC;AAElC,iBAAS;IACP,GAAG,MAAM,EAAE,oCAAoC;IAC/C,GAAG,KAAK,EAAE,wDAAwD;IAClE,GAAG,KAAK,EAAE,sBAAsB;IAChC,GAAG,KAAK,EAAE,2CAA2C;CACtD,CAAC"}

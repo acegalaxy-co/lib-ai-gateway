@@ -1,0 +1,1 @@
+{"version":3,"file":"error.d.ts","sourceRoot":"","sources":["../../../lib/claude-limit/error.ts"],"names":[],"mappings":"AAOA,cAAM,mBAAoB,SAAQ,KAAK;IACrC,IAAI,EAAE,MAAM,GAAG,IAAI,CAAC;IACpB,OAAO,EAAE,MAAM,GAAG,IAAI,CAAC;IACvB,KAAK,EAAE,MAAM,CAAC;IACd,GAAG,EAAE,MAAM,CAAC;IACZ,gBAAgB,EAAE,OAAO,CAAC;gBAEd,KAAK,EAAE,MAAM,EAAE,KAAK,EAAE,GAAG;CAqBtC;;;;AAED,kBAAiC"}
