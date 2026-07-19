@@ -1,0 +1,9 @@
+{
+  "proxy": { "baseUrlEnv": "NEXUS_9ROUTER_BASE_URL", "tokenEnv": "NEXUS_9ROUTER_TOKEN", "hostPattern": "9router" },
+  "families": {
+    "anthropic": { "prefix": "cc/", "originalHosts": ["api.anthropic.com"], "match": { "providerPrefix": "anthropic", "modelPrefix": "claude" }, "baseUrlEnv": ["NEXUS_CLAUDE_BASE_URL", "ANTHROPIC_BASE_URL"], "proxyEnableEnv": null, "switchTokenOnProxyHost": false },
+    "deepseek": { "prefix": "ds/", "originalHosts": ["api.deepseek.com"], "match": { "provider": "deepseek-api", "modelPrefix": "deepseek" }, "baseUrlEnv": ["NEXUS_DEEPSEEK_BASE_URL"], "proxyEnableEnv": "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE", "switchTokenOnProxyHost": true },
+    "codex": { "prefix": "cx/", "originalHosts": ["api.openai.com"], "match": { "provider": "codex-cli" }, "baseUrlEnv": ["NEXUS_CODEX_BASE_URL"], "proxyEnableEnv": "NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE", "switchTokenOnProxyHost": false }
+  },
+  "localDetect": { "baseUrlEnv": "ANTHROPIC_BASE_URL", "forceLocalEnv": "LOCAL_SERVICE_MODE" }
+}

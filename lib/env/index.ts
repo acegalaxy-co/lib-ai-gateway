@@ -7,11 +7,26 @@
 // "cc/" prefix on Anthropic model ids; PROD routes through api.anthropic.com
 // with bare ids. Centralized here so engine.ts (model normalization) and
 // client.ts (Notion row Env filter) never drift apart on the detection rule.
+//
+// Config-driven (2026-07-19): host pattern + env var names read from
+// config/proxy.json `localDetect` (same loader as lib/proxy-override, to
+// avoid drift). On load failure falls back to the original hardcode.
+
+import proxyOverride = require("../proxy-override");
 
 /** True when the current process routes LLM calls through the local 9router proxy. */
 function isLocalEndpoint(): boolean {
-  const baseUrl = process.env.ANTHROPIC_BASE_URL || "";
-  return /9router/.test(baseUrl) || process.env.LOCAL_SERVICE_MODE === "1";
+  let config;
+  try {
+    config = proxyOverride._loadProxyConfig();
+  } catch (_e) {
+    config = null;
+  }
+  const baseUrlEnv = (config && config.localDetect && config.localDetect.baseUrlEnv) || "ANTHROPIC_BASE_URL";
+  const forceLocalEnv = (config && config.localDetect && config.localDetect.forceLocalEnv) || "LOCAL_SERVICE_MODE";
+  const hostPattern = (config && config.proxy && config.proxy.hostPattern) || "9router";
+  const baseUrl = process.env[baseUrlEnv] || "";
+  return new RegExp(hostPattern).test(baseUrl) || process.env[forceLocalEnv] === "1";
 }
 
 /** Runtime env label matching the Notion `Env` select column ("Local" | "Prod"). */

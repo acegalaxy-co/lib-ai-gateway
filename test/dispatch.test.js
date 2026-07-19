@@ -25,6 +25,25 @@ function _resetModules() {
   }
 }
 
+// Snapshot + clear proxy-endpoint env so proxy-override does NOT add the
+// Anthropic "cc/" prefix (dev machines set ANTHROPIC_BASE_URL=9router). Tests
+// that assert a bare model id must run against a PROD endpoint. Returns a
+// restore fn. Mirrors the inline pattern already used at lines 43-44 / 234-238.
+function _forceProd() {
+  const keys = ["ANTHROPIC_BASE_URL", "NEXUS_CLAUDE_BASE_URL", "LOCAL_SERVICE_MODE"];
+  const snap = {};
+  for (const k of keys) {
+    snap[k] = process.env[k];
+    delete process.env[k];
+  }
+  return function restore() {
+    for (const k of keys) {
+      if (snap[k] === undefined) delete process.env[k];
+      else process.env[k] = snap[k];
+    }
+  };
+}
+
 function _load() {
   _resetModules();
   // Route audit log to a per-test temp file to avoid polluting source audit/audit.log.
@@ -83,9 +102,12 @@ test("L2_authz: invalid tier denies", async () => {
   assert.equal(r.denyReason, "L2_authz");
 });
 
-test("L2_authz: skill lacks tier binding denies (summarize has no 'deep')", async () => {
+test("L2_authz: skill lacks tier binding denies (extract-parties has no 'fast')", async () => {
+  // extract-parties tiers = balanced, deep (no 'fast'). summarize gained a
+  // 'deep' binding in 2026-07 so it can no longer serve as the missing-tier
+  // fixture — switched to a tier that is genuinely unbound.
   const { gw } = _load();
-  const r = await gw.dispatchCall({ skill: "invoice-enrich.summarize", tier: "deep", prompt: "x" });
+  const r = await gw.dispatchCall({ skill: "invoice-enrich.extract-parties", tier: "fast", prompt: "x" });
   assert.equal(r.outcome, "deny");
   assert.equal(r.denyReason, "L2_authz");
 });
@@ -159,6 +181,7 @@ test("audit log writes one JSONL line per call (allow OR deny)", async () => {
 // resolved model in the response's `.model` field (populated pre-adapter).
 // ============================================================
 test("env override: NEXUS_AI_GATEWAY_MODEL_<SKILL> replaces policy model", async () => {
+  const restore = _forceProd();
   const { gw } = _load();
   // crawler.extract policy binds anthropic-cli / claude-haiku-4-5. Override
   // via skill-specific env — expect resolved model in response.
@@ -171,10 +194,12 @@ test("env override: NEXUS_AI_GATEWAY_MODEL_<SKILL> replaces policy model", async
     assert.equal(r.provider, "anthropic-cli", "provider stays per policy");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    restore();
   }
 });
 
 test("env override: NEXUS_AI_GATEWAY_MODEL_DEFAULT applies when skill-specific unset", async () => {
+  const restore = _forceProd();
   const { gw } = _load();
   process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
   try {
@@ -182,10 +207,12 @@ test("env override: NEXUS_AI_GATEWAY_MODEL_DEFAULT applies when skill-specific u
     assert.equal(r.model, "claude-opus-4-7", "DEFAULT override applies");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
+    restore();
   }
 });
 
 test("env override: skill-specific wins over DEFAULT", async () => {
+  const restore = _forceProd();
   const { gw } = _load();
   process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
   process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-haiku-4-5";
@@ -195,6 +222,7 @@ test("env override: skill-specific wins over DEFAULT", async () => {
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
     delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    restore();
   }
 });
 
@@ -213,6 +241,7 @@ test("env override: does NOT apply to non-Anthropic providers", async () => {
 });
 
 test("env override: modelOverride param still wins over env vars", async () => {
+  const restore = _forceProd();
   const { gw } = _load();
   process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
   try {
@@ -228,6 +257,7 @@ test("env override: modelOverride param still wins over env vars", async () => {
     assert.equal(r.model, "claude-opus-4-7", "modelOverride param has highest priority");
   } finally {
     delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    restore();
   }
 });
 
@@ -265,7 +295,9 @@ test("authz modelKey routing: gemini_cli uses gemini-cli subscription route", as
   const result = await _checkModelKeyRouting("gemini_cli");
   assert.equal(result.allow, true);
   assert.equal(result.provider, "gemini-cli");
-  assert.equal(result.model, "gemini-2.5-pro");
+  // Registry row gemini_cli.id is gemini-2.5-flash (config/llm-config.json +
+  // data/llm-models-cache.json); was 'pro' when this test was written.
+  assert.equal(result.model, "gemini-2.5-flash");
 });
 
 test("authz modelKey routing: codex_cli uses codex-cli subscription route", async () => {

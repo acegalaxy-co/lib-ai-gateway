@@ -112,6 +112,24 @@ commons/ai-gateway/
     rate-limit/index.ts       # shared sliding window (clone OTT)
 ```
 
+## Proxy config
+
+`lib/proxy-override/` resolves original-API-vs-9router-proxy endpoint + model-id
+prefix (`cc/`, `ds/`, `cx/`) per family (anthropic, deepseek, codex). Family
+knobs (prefix, original hosts, match rule, `baseUrlEnv` list, proxy-enable
+flag env, token-switch behavior) live in `config/proxy.json`, values = the
+original hardcode. `.env` still controls behavior at runtime (`NEXUS_CLAUDE_BASE_URL`,
+`NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE`, etc.) — `config/proxy.json` only
+declares which env vars matter per family and how they combine.
+
+Load priority: `AI_GATEWAY_PROXY_CONFIG` (explicit file path) > `AI_GATEWAY_CONFIG_ROOT/config/proxy.json`
+> co-located `config/proxy.json` (dist tree after `copy-assets`, or source tree).
+Missing/malformed file falls back to an in-code default (same values) — the
+gateway never throws on this path. `lib/env/index.ts` reads the same config's
+`localDetect` block for LOCAL vs PROD detection.
+
+Phase B (extracting this gateway into a shared repo across projects) is a later step — out of scope here.
+
 ## Audit log
 
 - Path: `commons/ai-gateway/audit/audit.log` (gitignored — may contain prompt hashes/PII)

@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc && npm run copy-assets",
-    "copy-assets": "mkdir -p dist/authz && cp authz/policies.json dist/authz/policies.json",
+    "copy-assets": "mkdir -p dist/authz && cp authz/policies.json dist/authz/policies.json && mkdir -p dist/config && cp config/proxy.json dist/config/proxy.json",
     "clean": "rm -rf dist",
     "test": "node --test test/*.test.js"
   },
