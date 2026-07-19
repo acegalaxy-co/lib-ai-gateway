@@ -58,6 +58,20 @@ function _cliInvocation(): [string, string[]] {
   return [bin, []];
 }
 
+// Claude Code CLI (`claude -p --model`) only accepts short aliases
+// ("haiku"/"sonnet"/"opus"), NOT full model IDs. Passing a full ID like
+// "claude-sonnet-4-6" fails: "issue with the selected model ... may not exist".
+// The gateway registry feeds full IDs, so normalize here. Alias resolves to
+// the CLI's current version of that tier → resilient to model version drift.
+function _toCliModel(model: string): string {
+  const m = String(model || "").trim().toLowerCase();
+  if (!m) return "";                      // empty → CLI subscription default
+  if (m.includes("opus")) return "opus";
+  if (m.includes("sonnet")) return "sonnet";
+  if (m.includes("haiku")) return "haiku";
+  return String(model).trim();            // non-anthropic / already-alias → passthrough
+}
+
 class AnthropicCLIAdapter extends IAIAdapter {
   get provider(): string {
     return "anthropic-cli";
@@ -84,11 +98,10 @@ class AnthropicCLIAdapter extends IAIAdapter {
     const text = await new Promise<string>((resolve, reject) => {
       const [cmd, prefix] = _cliInvocation();
       const argv = [...prefix, "--permission-mode", "acceptEdits"];
-      // Model — pass explicit alias/full-name if policy or env override
-      // resolved a value (see gateway _resolveEnvModelOverride). Skip if
-      // empty so CLI keeps subscription default. Supported aliases:
-      // "haiku", "sonnet", "opus", or full IDs like "claude-haiku-4-5".
-      const modelArg = String(req.model || "").trim();
+      // Model — pass alias resolved from policy/env-override value. Normalize
+      // full IDs → CLI alias (CLI rejects full IDs; see _toCliModel). Skip if
+      // empty so CLI keeps subscription default.
+      const modelArg = _toCliModel(req.model);
       if (modelArg) argv.push("--model", modelArg);
       if (allowedTools) argv.push("--allowedTools", allowedTools);
       // MCP config — needed by skills that use MCP tools (crawler CloakBrowser etc.)
@@ -155,4 +168,4 @@ class AnthropicCLIAdapter extends IAIAdapter {
   }
 }
 
-export = { AnthropicCLIAdapter };
+export = { AnthropicCLIAdapter, _toCliModel };

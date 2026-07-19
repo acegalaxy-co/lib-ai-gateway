@@ -181,7 +181,7 @@ test("anthropic-cli: null bytes in prompt are stripped before spawn", async () =
 // takes effect. Empty model → skip flag, CLI falls back to subscription
 // default (backward-compat with earlier callers passing model:"m" etc.).
 // ============================================================
-test("anthropic-cli: model non-empty → --model <name> in argv before -p", async () => {
+test("anthropic-cli: model non-empty → --model <alias> in argv before -p", async () => {
   const captured = {};
   const stub = _makeStub(["ok"], [], 0, null, captured);
   await _withSpawn(stub, async () => {
@@ -195,7 +195,8 @@ test("anthropic-cli: model non-empty → --model <name> in argv before -p", asyn
     const idxModel = captured.argv.indexOf("--model");
     const idxP = captured.argv.indexOf("-p");
     assert.ok(idxModel > -1, "--model flag must be present when model non-empty");
-    assert.equal(captured.argv[idxModel + 1], "claude-haiku-4-5");
+    // 2026-07-19: full ID normalized to CLI alias (CLI rejects full IDs).
+    assert.equal(captured.argv[idxModel + 1], "haiku");
     assert.ok(idxModel < idxP, "--model must precede -p so prompt isn't swallowed");
   });
 });
