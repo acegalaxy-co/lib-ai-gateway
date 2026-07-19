@@ -3,12 +3,24 @@
 // commons/ai-gateway/test/vendor-endpoint.test.js
 // Run: npm test (uses node --test). Build dist/ first (npm run build).
 //
-// Covers per-vendor LLM endpoint switch added 2026-07-10:
-//   NEXUS_CLAUDE_BASE_URL / NEXUS_CODEX_BASE_URL / NEXUS_DEEPSEEK_BASE_URL.
-//   Empty/unset = direct/original API. Non-empty = engine.check() resolves
-//   that value into CheckResult.baseUrl, and (Anthropic only) drives the
-//   'cc/' model-id prefix normalization. Gemini is OAuth account-based — no
-//   endpoint hook, not covered here (documented N/A in .env.example).
+// Relocated 2026-07-19: proxy-vs-original endpoint resolution + model-id
+// prefix normalization moved OUT of authz/engine.ts into a single shared
+// layer lib/proxy-override/ (see test/proxy-override.test.js for isolated
+// unit coverage of that function). engine.check() no longer reads
+// NEXUS_CLAUDE_BASE_URL / NEXUS_DEEPSEEK_BASE_URL / NEXUS_CODEX_BASE_URL /
+// NEXUS_9ROUTER_* itself — it only resolves registry/binding provider+model
+// +baseUrl+apiKeyEnv.
+//
+// This file now keeps:
+//   (a) engine.check() registry/binding-only tests (no proxy env set) —
+//       confirms engine.ts still resolves modelKey → provider/model/baseUrl
+//       /apiKeyEnv correctly post-refactor.
+//   (b) composed pipeline tests: engine.check() output piped through
+//       applyProxyOverride, mirroring what index.ts dispatchCall() actually
+//       does — catches integration/field-shape bugs that isolated unit
+//       tests on either layer alone would miss.
+//   (c) priority-order regression guards (flag wins over URL override) that
+//       weren't in the required proxy-override.test.js case list.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -55,6 +67,10 @@ function _loadEngine() {
   return authz;
 }
 
+function _loadProxyOverride() {
+  return require(path.join(DIST, "lib", "proxy-override", "index.js"));
+}
+
 async function _checkModelKeyRouting(modelKey) {
   // Clear cache FIRST, then mutate policies.json, then require engine.js —
   // engine's internal require(policies.json) must resolve to the SAME cached
@@ -87,25 +103,11 @@ async function _checkModelKeyRouting(modelKey) {
   }
 }
 
-test("NEXUS_CLAUDE_BASE_URL=9router: anthropic tier resolves cc/ prefix + baseUrl", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const authz = _loadEngine();
-    const r = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.ok(r.model.startsWith("cc/"), `expected cc/ prefix, got model="${r.model}"`);
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
-  } finally {
-    _restoreEnv(snap);
-  }
-});
+// --- (a) engine.check() registry/binding-only (no proxy env) ---------------
 
-test("NEXUS_CLAUDE_BASE_URL empty: anthropic tier keeps bare model id", async () => {
+test("engine.check() (no proxy env): anthropic tier resolves bare model id", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CLAUDE_BASE_URL = "";
   try {
     const authz = _loadEngine();
     const r = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
@@ -116,22 +118,7 @@ test("NEXUS_CLAUDE_BASE_URL empty: anthropic tier keeps bare model id", async ()
   }
 });
 
-test("NEXUS_DEEPSEEK_BASE_URL set: overrides registry baseUrl", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1", "vendor env overrides registry baseUrl");
-    assert.ok(r.model.startsWith("ds/"), `9router requires ds/ prefix, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_DEEPSEEK_BASE_URL empty: keeps registry api.deepseek.com + bare model", async () => {
+test("engine.check() (no proxy env): deepseek_api modelKey resolves registry baseUrl + bare model + registry apiKeyEnv", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   try {
@@ -139,170 +126,14 @@ test("NEXUS_DEEPSEEK_BASE_URL empty: keeps registry api.deepseek.com + bare mode
     assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
     assert.equal(r.provider, "deepseek-api");
     assert.equal(r.baseUrl, "https://api.deepseek.com/v1", "registry baseUrl preserved");
-    assert.ok(!r.model.startsWith("ds/"), `direct endpoint uses bare id, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_DEEPSEEK_BASE_URL=9router host: apiKeyEnv auto-switches to NEXUS_9ROUTER_TOKEN", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN", "9router base must route to 9router token");
-    assert.ok(r.model.startsWith("ds/"), `9router requires ds/ prefix, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_DEEPSEEK_BASE_URL=9router endpoint: apiKeyEnv also switches", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN", "local 9router proxy base must route to 9router token");
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_DEEPSEEK_BASE_URL empty: apiKeyEnv keeps registry NEXUS_DEEPSEEK_API_KEY", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY", "direct deepseek base must keep original key env");
-    assert.ok(!r.model.startsWith("ds/"), `direct endpoint uses bare id, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1: routes through 9router base + token, ds/ prefix", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
-    assert.ok(r.baseUrl.includes("9router"), `expected 9router baseUrl, got="${r.baseUrl}"`);
-    assert.ok(r.model.startsWith("ds/"), `expected ds/ prefix, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 wins over NEXUS_DEEPSEEK_BASE_URL when both set", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
-    assert.equal(r.baseUrl, process.env.NEXUS_9ROUTER_BASE_URL, "flag must win over NEXUS_DEEPSEEK_BASE_URL");
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE unset + NEXUS_DEEPSEEK_BASE_URL unset: keeps registry default key", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  try {
-    const r = await _checkModelKeyRouting("deepseek_api");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "deepseek-api");
-    assert.equal(r.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY");
+    assert.equal(r.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY", "registry apiKeyEnv preserved");
     assert.ok(!r.model.startsWith("ds/"), `expected bare model id, got="${r.model}"`);
   } finally {
     _restoreEnv(snap);
   }
 });
 
-test("NEXUS_CODEX_BASE_URL set: resolved baseUrl carries that value", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const r = await _checkModelKeyRouting("codex_cli");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "codex-cli");
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
-    assert.ok(r.model.startsWith("cx/"), `9router requires cx/ prefix, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_CODEX_BASE_URL empty: codex direct uses bare model id (no cx/)", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  try {
-    const r = await _checkModelKeyRouting("codex_cli");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "codex-cli");
-    assert.ok(!r.model.startsWith("cx/"), `direct endpoint uses bare id, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE=1: routes through 9router base + token, cx/ prefix", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  try {
-    const r = await _checkModelKeyRouting("codex_cli");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "codex-cli");
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
-    assert.ok(r.baseUrl.includes("9router"), `expected 9router baseUrl, got="${r.baseUrl}"`);
-    assert.ok(r.model.startsWith("cx/"), `expected cx/ prefix, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE=1 wins over NEXUS_CODEX_BASE_URL when both set", async () => {
-  const snap = _snapshotEnv();
-  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
-  try {
-    const r = await _checkModelKeyRouting("codex_cli");
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
-    assert.equal(r.provider, "codex-cli");
-    assert.equal(r.baseUrl, process.env.NEXUS_9ROUTER_BASE_URL, "flag must win over NEXUS_CODEX_BASE_URL");
-    assert.ok(r.model.startsWith("cx/"), `expected cx/ prefix, got model="${r.model}"`);
-  } finally {
-    _restoreEnv(snap);
-  }
-});
-
-test("NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE unset + NEXUS_CODEX_BASE_URL unset: keeps old behavior (bare model)", async () => {
+test("engine.check() (no proxy env): codex_cli modelKey resolves bare model id", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   try {
@@ -315,16 +146,151 @@ test("NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE unset + NEXUS_CODEX_BASE_URL unset:
   }
 });
 
-test("backward-compat: ANTHROPIC_BASE_URL=9router (NEXUS_CLAUDE unset) still gets cc/ prefix", async () => {
+// --- (b) composed pipeline: engine.check() piped through applyProxyOverride
+
+test("composed pipeline: NEXUS_CLAUDE_BASE_URL=9router → engine.check()+applyProxyOverride yields cc/ prefix + baseUrl", async () => {
+  const snap = _snapshotEnv();
+  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
+  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.acegalaxy.co/v1";
+  try {
+    const authz = _loadEngine();
+    const bound = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
+    assert.equal(bound.allow, true, `expected allow, got: ${bound.reason}`);
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({
+      provider: bound.provider,
+      model: bound.model,
+      baseUrl: bound.baseUrl,
+      apiKeyEnv: bound.apiKeyEnv,
+    });
+    assert.ok(r.model.startsWith("cc/"), `expected cc/ prefix, got model="${r.model}"`);
+    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+  } finally {
+    _restoreEnv(snap);
+  }
+});
+
+test("composed pipeline: NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.check()+applyProxyOverride yields ds/ prefix + 9router baseUrl + token", async () => {
+  const snap = _snapshotEnv();
+  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
+  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
+  try {
+    const bound = await _checkModelKeyRouting("deepseek_api");
+    assert.equal(bound.allow, true, `expected allow, got: ${bound.reason}`);
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({
+      provider: bound.provider,
+      model: bound.model,
+      baseUrl: bound.baseUrl,
+      apiKeyEnv: bound.apiKeyEnv,
+    });
+    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
+    assert.ok(r.baseUrl.includes("9router"), `expected 9router baseUrl, got="${r.baseUrl}"`);
+    assert.ok(r.model.startsWith("ds/"), `expected ds/ prefix, got model="${r.model}"`);
+  } finally {
+    _restoreEnv(snap);
+  }
+});
+
+test("composed pipeline: NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE=1 → engine.check()+applyProxyOverride yields cx/ prefix + 9router baseUrl + token", async () => {
+  const snap = _snapshotEnv();
+  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
+  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
+  try {
+    const bound = await _checkModelKeyRouting("codex_cli");
+    assert.equal(bound.allow, true, `expected allow, got: ${bound.reason}`);
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({
+      provider: bound.provider,
+      model: bound.model,
+      baseUrl: bound.baseUrl,
+      apiKeyEnv: bound.apiKeyEnv,
+    });
+    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
+    assert.ok(r.baseUrl.includes("9router"), `expected 9router baseUrl, got="${r.baseUrl}"`);
+    assert.ok(r.model.startsWith("cx/"), `expected cx/ prefix, got model="${r.model}"`);
+  } finally {
+    _restoreEnv(snap);
+  }
+});
+
+test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (NEXUS_CLAUDE unset) still gets cc/ prefix", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   process.env.ANTHROPIC_BASE_URL = "https://9router.acegalaxy.co/v1";
   try {
     const authz = _loadEngine();
-    const r = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
-    assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
+    const bound = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
+    assert.equal(bound.allow, true, `expected allow, got: ${bound.reason}`);
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({
+      provider: bound.provider,
+      model: bound.model,
+      baseUrl: bound.baseUrl,
+      apiKeyEnv: bound.apiKeyEnv,
+    });
     assert.ok(r.model.startsWith("cc/"), `expected cc/ prefix via legacy var, got model="${r.model}"`);
     assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1", "legacy ANTHROPIC_BASE_URL used as baseUrl fallback");
+  } finally {
+    _restoreEnv(snap);
+  }
+});
+
+// --- (c) priority-order regression guards (flag wins over URL override) ---
+
+test("priority-order: NEXUS_CODEX_BASE_URL set (no flag) gets cx/ prefix + baseUrl carried, apiKeyEnv untouched", () => {
+  const snap = _snapshotEnv();
+  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
+  process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
+  try {
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });
+    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.ok(r.model.startsWith("cx/"), `9router requires cx/ prefix, got model="${r.model}"`);
+    assert.equal(r.apiKeyEnv, undefined, "URL-only override (no flag) must not touch apiKeyEnv");
+  } finally {
+    _restoreEnv(snap);
+  }
+});
+
+test("priority-order: deepseek NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 wins over NEXUS_DEEPSEEK_BASE_URL when both set", () => {
+  const snap = _snapshotEnv();
+  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
+  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
+  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
+  try {
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({
+      provider: "deepseek-api",
+      model: "deepseek-v4-pro",
+      baseUrl: "https://api.deepseek.com/v1",
+      apiKeyEnv: "NEXUS_DEEPSEEK_API_KEY",
+    });
+    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
+    assert.equal(r.baseUrl, process.env.NEXUS_9ROUTER_BASE_URL, "flag must win over NEXUS_DEEPSEEK_BASE_URL");
+  } finally {
+    _restoreEnv(snap);
+  }
+});
+
+test("priority-order: codex NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE=1 wins over NEXUS_CODEX_BASE_URL when both set", () => {
+  const snap = _snapshotEnv();
+  for (const k of VENDOR_ENV_KEYS) delete process.env[k];
+  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
+  process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
+  try {
+    const { applyProxyOverride } = _loadProxyOverride();
+    const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });
+    assert.equal(r.baseUrl, process.env.NEXUS_9ROUTER_BASE_URL, "flag must win over NEXUS_CODEX_BASE_URL");
+    assert.ok(r.model.startsWith("cx/"), `expected cx/ prefix, got model="${r.model}"`);
   } finally {
     _restoreEnv(snap);
   }

@@ -18,6 +18,7 @@ const breaker = require("./rate-limit/circuit-breaker");
 const audit = require("./audit/logger");
 const { ClaudeCliLimitError } = require("./lib/claude-limit/error");
 const { isLocalEndpoint, resolveEnv } = require("./lib/env");
+const { applyProxyOverride } = require("./lib/proxy-override");
 
 type Tier = "fast" | "balanced" | "deep";
 type DenyReason =
@@ -234,6 +235,20 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
       const envModel = _resolveEnvModelOverride(req.skill, authzResult.provider);
       if (envModel) authzResult.model = envModel;
     }
+
+    // Single proxy-override layer — resolve original-vs-proxy endpoint + model
+    // prefix for ALL paths (tier-binding, modelOverride, env-override) uniformly.
+    // Replaces the per-vendor endpoint/prefix logic previously in authz/engine.ts.
+    const _po = applyProxyOverride({
+      provider: authzResult.provider,
+      model: authzResult.model,
+      baseUrl: authzResult.baseUrl,
+      apiKeyEnv: authzResult.apiKeyEnv,
+    });
+    authzResult.model = _po.model;
+    authzResult.baseUrl = _po.baseUrl;
+    authzResult.apiKeyEnv = _po.apiKeyEnv;
+
     provider = authzResult.provider;
     outcome.provider = provider;
     outcome.model = authzResult.model;

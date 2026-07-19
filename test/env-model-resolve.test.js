@@ -6,8 +6,13 @@
 // Covers env-aware Anthropic model-id normalization added 2026-07-09:
 //   LOCAL (ANTHROPIC_BASE_URL → 9router proxy) requires a "cc/" prefix on
 //   Anthropic model ids; PROD (api.anthropic.com, var unset) requires the
-//   bare id. engine.check() must add/strip the prefix to match the endpoint,
-//   and must NOT touch openai-compat providers.
+//   bare id.
+//
+// 2026-07-19: prefix/endpoint normalization moved out of engine.check() into
+//   the single lib/proxy-override layer (see proxy-override.test.js). engine
+//   now returns the bare binding; dispatchCall composes engine.check() →
+//   applyProxyOverride. These tests exercise that same composition so they
+//   still assert the end-to-end cc/ behavior the real flow produces.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -35,14 +40,31 @@ function _loadEngine() {
   return authz;
 }
 
-function _withBaseUrl(value, fn) {
+const { applyProxyOverride } = require(path.join(DIST, "lib", "proxy-override"));
+
+// Mirror the real dispatchCall composition: engine resolves the bare binding,
+// the proxy-override layer applies endpoint + model-id prefix.
+async function _resolve(skill, tier) {
+  const authz = _loadEngine();
+  const r = await authz.check(skill, tier);
+  if (!r.allow) return r;
+  const po = applyProxyOverride({
+    provider: r.provider,
+    model: r.model,
+    baseUrl: r.baseUrl,
+    apiKeyEnv: r.apiKeyEnv,
+  });
+  return { ...r, model: po.model, baseUrl: po.baseUrl, apiKeyEnv: po.apiKeyEnv };
+}
+
+async function _withBaseUrl(value, fn) {
   const prev = process.env.ANTHROPIC_BASE_URL;
   const prevLocal = process.env.LOCAL_SERVICE_MODE;
   if (value === undefined) delete process.env.ANTHROPIC_BASE_URL;
   else process.env.ANTHROPIC_BASE_URL = value;
   delete process.env.LOCAL_SERVICE_MODE;
   try {
-    return fn();
+    return await fn();
   } finally {
     if (prev === undefined) delete process.env.ANTHROPIC_BASE_URL;
     else process.env.ANTHROPIC_BASE_URL = prev;
@@ -52,10 +74,9 @@ function _withBaseUrl(value, fn) {
 }
 
 test("LOCAL (9router base url): anthropic model gets cc/ prefix", async () => {
-  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () => {
-    const authz = _loadEngine();
-    return authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
-  });
+  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () =>
+    _resolve(ANTHROPIC_SKILL, ANTHROPIC_TIER),
+  );
   assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
   assert.ok(
     r.model.startsWith("cc/"),
@@ -64,10 +85,9 @@ test("LOCAL (9router base url): anthropic model gets cc/ prefix", async () => {
 });
 
 test("PROD (no base url): anthropic model stays bare (no cc/ prefix)", async () => {
-  const r = await _withBaseUrl(undefined, () => {
-    const authz = _loadEngine();
-    return authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
-  });
+  const r = await _withBaseUrl(undefined, () =>
+    _resolve(ANTHROPIC_SKILL, ANTHROPIC_TIER),
+  );
   assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
   assert.ok(
     !r.model.startsWith("cc/"),
@@ -77,10 +97,9 @@ test("PROD (no base url): anthropic model stays bare (no cc/ prefix)", async () 
 
 test("idempotent: LOCAL twice yields identical prefixed model", async () => {
   const run = () =>
-    _withBaseUrl("https://9router.acegalaxy.co/v1", () => {
-      const authz = _loadEngine();
-      return authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
-    });
+    _withBaseUrl("https://9router.acegalaxy.co/v1", () =>
+      _resolve(ANTHROPIC_SKILL, ANTHROPIC_TIER),
+    );
   const a = await run();
   const b = await run();
   assert.equal(a.model, b.model);
@@ -89,10 +108,9 @@ test("idempotent: LOCAL twice yields identical prefixed model", async () => {
 });
 
 test("openai-compat provider is NOT touched by cc/ normalization (local)", async () => {
-  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () => {
-    const authz = _loadEngine();
-    return authz.check(OPENAI_SKILL, OPENAI_TIER);
-  });
+  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () =>
+    _resolve(OPENAI_SKILL, OPENAI_TIER),
+  );
   // summarize.fast binds to an openai-compat model (haiku is anthropic; fast=haiku
   // actually — guard below tolerates either provider but asserts no cc/ leak onto
   // a non-anthropic provider).
