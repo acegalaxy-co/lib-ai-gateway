@@ -22,7 +22,7 @@ const ENV_KEYS = [
   "NEXUS_CODEX_BASE_URL",
   "NEXUS_DEEPSEEK_BASE_URL",
   "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
-  "NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE",
+  "NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
   "NEXUS_9ROUTER_BASE_URL",
   "NEXUS_9ROUTER_TOKEN",
 ];
@@ -141,7 +141,7 @@ test("5. anthropic original: api.anthropic.com baseUrl keeps bare model", () => 
 test("6. codex 9router flag=1: cx/ prefix + 9router baseUrl + token", () => {
   const snap = _snapshotEnv();
   _clean();
-  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
   process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-token";
   try {

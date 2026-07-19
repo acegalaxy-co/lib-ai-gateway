@@ -37,7 +37,7 @@ const VENDOR_ENV_KEYS = [
   "NEXUS_CODEX_BASE_URL",
   "NEXUS_DEEPSEEK_BASE_URL",
   "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
-  "NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE",
+  "NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
   "NEXUS_9ROUTER_BASE_URL",
   "NEXUS_9ROUTER_TOKEN",
   "ANTHROPIC_BASE_URL",
@@ -194,10 +194,10 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.
   }
 });
 
-test("composed pipeline: NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE=1 → engine.check()+applyProxyOverride yields cx/ prefix + 9router baseUrl + token", async () => {
+test("composed pipeline: NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.check()+applyProxyOverride yields cx/ prefix + 9router baseUrl + token", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
   process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
   try {
@@ -279,10 +279,10 @@ test("priority-order: deepseek NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 wins 
   }
 });
 
-test("priority-order: codex NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE=1 wins over NEXUS_CODEX_BASE_URL when both set", () => {
+test("priority-order: codex NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 wins over NEXUS_CODEX_BASE_URL when both set", () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_CODEX_CLI_ENABLE = "1";
+  process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
   process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
   process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
