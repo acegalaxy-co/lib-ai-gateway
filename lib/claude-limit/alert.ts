@@ -1,39 +1,34 @@
 "use strict";
 
 // claude-limit/alert.ts
-// Rate-limited Telegram alerts to Alert Nexus channel on Claude CLI limit hit.
-// Tracks 1x per scheduler:kind per 1h to prevent spam.
-
-const path = require("node:path");
+// Rate-limited alerts on Claude CLI limit hit. Tracks 1x per scheduler:kind
+// per 1h to prevent spam.
+//
+// Transport is INJECTED by the caller (dependency injection) — the gateway is
+// a standalone shared package (@acegalaxy/ai-gateway) and must NOT reach into
+// the consumer app to resolve a telegram/notify module. The caller passes
+// `sendAlert(message, channelId)`; here we only decide cooldown + build the
+// message + read the channel env, then hand off.
 
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
+// Injected transport: (message, channelId) → void | Promise<void>.
+type SendAlertFn = (message: string, channelId: string) => Promise<void> | void;
 
 // Internal Map<key="scheduler:kind", lastAlertTime>
 const _alertTimes: Map<string, number> = new Map();
 
-// Resolve Nexus repo root from __dirname. This file runs from either
-// commons/ai-gateway/lib/claude-limit (tsx source) or
-// commons/ai-gateway/dist/lib/claude-limit (compiled) — the dist/ level shifts
-// the relative depth, so a hardcoded "../../.." breaks in one of them (the
-// old 6-up string was wrong for both → "Cannot find module", alerts silent).
-// Anchor on the "commons" path segment instead: robust to dist nesting.
-function _repoRoot(): string {
-  const parts = __dirname.split(path.sep);
-  const i = parts.lastIndexOf("commons");
-  return i > 0
-    ? parts.slice(0, i).join(path.sep)
-    : path.join(__dirname, "..", "..", "..", "..");
-}
-
 /**
- * Send alert to Telegram if enough time has passed since last alert for this scheduler:kind.
- * Does NOT throw — swallows Telegram API errors.
+ * Send alert via the injected transport if enough time has passed since last
+ * alert for this scheduler:kind. Does NOT throw — swallows transport errors and
+ * a missing/invalid `sendAlert` (defensive: old callers that omit it won't crash).
  */
 async function alertClaudeCliLimit(
   schedulerName: string,
   skill: string,
   kind: string | null,
-  resetAt: number | null
+  resetAt: number | null,
+  sendAlert: SendAlertFn
 ): Promise<void> {
   const key = `${schedulerName}:${kind || "unknown"}`;
   const now = Date.now();
@@ -47,37 +42,31 @@ async function alertClaudeCliLimit(
     return;
   }
 
-  // Update cooldown marker
+  const channelId = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
+  if (!channelId) {
+    console.warn(
+      "[ai-gateway][claude-limit-alert] NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT not set; skipping alert"
+    );
+    return;
+  }
+
+  if (typeof sendAlert !== "function") {
+    console.warn(
+      "[ai-gateway][claude-limit-alert] no sendAlert transport injected; skipping alert"
+    );
+    return;
+  }
+
+  // Update cooldown marker only once we know we can actually send.
   _alertTimes.set(key, now);
 
   const resetLabel = resetAt ? new Date(resetAt).toISOString() : "unknown";
   const message = `🚦 **CLAUDE CLI LIMIT** — Scheduler: ${schedulerName}\nSkill: ${skill}\nKind: ${kind || "rate-limit"}\nReset: ${resetLabel}\n\nScheduler paused until reset.`;
 
   try {
-    // Resolve from repo root (robust to dist/ vs src nesting — see _repoRoot).
-    const notify = require(
-      path.join(_repoRoot(), "src", "app", "modules", "shared", "telegram")
-    );
-    const channelId = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-
-    if (!channelId) {
-      console.warn(
-        "[ai-gateway][claude-limit-alert] NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT not set; skipping alert"
-      );
-      return;
-    }
-
-    // Send async without awaiting (fire-and-forget).
-    // sendTelegram(text, chatId, options) — text first, chatId second.
-    notify
-      .sendTelegram(message, channelId)
-      .catch((e: any) => {
-        console.error(
-          "[ai-gateway][claude-limit-alert] Telegram send failed:",
-          e && (e as Error).message
-        );
-      });
-
+    // Fire-and-forget via injected transport. sendAlert(message, channelId) —
+    // message first, channelId second (same order as the old telegram call).
+    await Promise.resolve(sendAlert(message, channelId));
     console.log(
       `[ai-gateway][claude-limit-alert] Alert queued for ${key}: ${resetLabel}`
     );
