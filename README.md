@@ -1,16 +1,50 @@
-# @nexus/ai-gateway
+# @acegalaxy/ai-gateway
 
-In-repo runtime LLM call gateway. 5-layer default-deny. Mirrors `@nexus/ott-gateway` pattern (see [.claude/rules/system-ott.md](../../.claude/rules/system-ott.md)) for runtime AI calls instead of inbound OTT messages.
+Shared runtime LLM call gateway. 5-layer default-deny. Extracted from ACE Nexus
+so multiple projects consume one gateway and updates land in one place.
 
-## Why
+**Private** — `authz/policies.json` (skill names + quotas) and `config/proxy.json`
+(internal proxy/env wiring) are internal architecture. Do NOT publish to a public
+registry. Consume via git-dependency only.
 
-Every LLM call from Nexus runtime (skills, schedulers, handlers) MUST go through this gateway.
-Direct `require("@anthropic-ai/sdk")` / `openai` / `claude` CLI subprocess outside `commons/ai-gateway/adapters/` is forbidden — see rule `.claude/rules/system-ai-gateway.md`.
+## Consume (git-dependency)
+
+Ships prebuilt `dist/` — no build step in the consumer.
+
+```jsonc
+// consumer package.json
+"dependencies": {
+  "@acegalaxy/ai-gateway": "git+ssh://git@github.com:acegalaxy-co/ai-gateway.git#v1.0.0"
+}
+```
+
+Pin a tag (`#v1.0.0`), not a branch. Bump the tag to upgrade. Private repo → the
+install host needs SSH/deploy-key access to `acegalaxy-co/ai-gateway`.
+
+```ts
+const { dispatchCall } = require("@acegalaxy/ai-gateway");
+// subpath exports:
+const claudeLimit = require("@acegalaxy/ai-gateway/lib/claude-limit");
+const auditLogger = require("@acegalaxy/ai-gateway/audit/logger");
+```
+
+## Consumer contract — required env
+
+| Env | Purpose | Default if unset |
+|---|---|---|
+| `AI_GATEWAY_CONFIG_ROOT` | Dir containing `config/llm-config.json` + `data/llm-models-cache.json` (the shared model registry, Notion-synced by the consumer). Point at the consumer repo root. | walk-up from package location — unreliable inside `node_modules`, so set it explicitly |
+| `AI_GATEWAY_AUDIT_LOG_PATH` | Absolute path for the append-only audit log. **Set this OUTSIDE `node_modules`** (e.g. `<repo>/data/ai-gateway-audit.log`) — `npm install` wipes `node_modules`, taking any log inside it. | `<package>/audit/audit.log` (lost on reinstall) |
+| `AI_GATEWAY_PROXY_CONFIG` | Explicit path to a `proxy.json` override. | `AI_GATEWAY_CONFIG_ROOT/config/proxy.json`, then package's own `config/proxy.json` |
+
+The gateway resolves the model registry (provider, model id, baseUrl, apiKeyEnv)
+from `config/llm-config.json` + `data/llm-models-cache.json` under `AI_GATEWAY_CONFIG_ROOT`.
+Provider API keys are read at call time from `process.env` (names declared per model
+in the registry) — never passed through the gateway API.
 
 ## 5 layers (default-deny, in order)
 
-```
-callLLM(prompt, { skill, tier, schema? })
+```text
+dispatchCall({ skill, tier, prompt, schema? })
   ▶ L1 Adapter (provider verify + payload normalize)
   ▶ L2 Authz   (skill → allowed providers/models matrix)
   ▶ L3 Budget  (token quota per skill/day — reserve pre-call, commit post-call)
@@ -19,20 +53,6 @@ callLLM(prompt, { skill, tier, schema? })
 ```
 
 Deny reasons: `L1_provider_unavailable | L2_authz | L3_budget_exhausted | L4_circuit_open | L5_audit_fatal`.
-
-## Status (current)
-
-- ✅ 5-layer dispatch for text calls (`dispatchCall`) and embeddings (`dispatchEmbed`).
-- ✅ Subscription flow: model registry rows with `type: "Subscription"` route to CLI adapters:
-  - `anthropic` → `anthropic-cli`
-  - `openai-compat` + Gemini model id → `gemini-cli`
-  - `openai-compat` + Codex model id → `codex-cli`
-- ✅ API Key flow: model registry rows with `type: "API Key"` route to REST adapters:
-  - `anthropic` → `anthropic-api`
-  - `openai-compat` → `openai-compat`
-  - embeddings → `openai-embeddings`
-- ✅ `src/app/llm/client.ts`, `src/app/llm/claude-cli.ts`, and RAG embeddings route runtime calls through this gateway.
-- 🚧 Remaining audit: direct model catalog/health probes and any legacy runtime bypasses outside `commons/ai-gateway/` must be migrated or explicitly classified as non-runtime probes before enforcement is tightened.
 
 ## Contract
 
@@ -49,7 +69,7 @@ class IAIAdapter {
 ## Entry point
 
 ```ts
-const { dispatchCall } = require("@nexus/ai-gateway");
+const { dispatchCall } = require("@acegalaxy/ai-gateway");
 
 const result = await dispatchCall({
   skill: "invoice-enrich.summarize",
@@ -64,6 +84,13 @@ const result = await dispatchCall({
 
 `dispatchCall` NEVER throws. Always returns `{outcome, denyReason?, text?, tokensIn?, tokensOut?, latencyMs}`.
 
+## Claude CLI limit alerts — inject transport
+
+`lib/claude-limit/` detects Session-5h / Weekly-7d / rate limits from CLI stderr.
+`alertClaudeCliLimit(scheduler, skill, kind, resetAt, sendAlert)` takes an injected
+`sendAlert(message, channelId)` — the gateway does NOT reach into the consumer to
+resolve a notify/telegram module. The consumer passes its own transport.
+
 ## Model selection
 
 Priority (high → low):
@@ -77,62 +104,67 @@ Skill name → env var: uppercase, `.` and `-` → `_`. Example `crawler.extract
 
 Env override applies ONLY to Anthropic providers (`anthropic-api`, `anthropic-cli`). Skills bound `openai-compat` (DeepSeek/Gemini) are untouched — cross-provider swap needs `baseUrl` + `apiKeyEnv` which env vars can't carry.
 
-```bash
-# Run crawler with Haiku for one session
-NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-haiku-4-5 npm run start artist-search
-
-# Rollback all Anthropic skills to Sonnet
-NEXUS_AI_GATEWAY_MODEL_DEFAULT=claude-sonnet-4-6 node server.js
-```
-
 ## Files
 
-```
-commons/ai-gateway/
-  index.ts                    # dispatchCall() — 5-layer entry
-  types.ts                    # AICallRequest, AICallResponse, OutcomeRecord
-  adapters/
-    adapter-interface.ts      # IAIAdapter / IEmbedAdapter abstract contracts
-    anthropic-api.ts          # Anthropic Messages API, API-key flow
-    anthropic-cli.ts          # Claude CLI subscription flow
-    gemini-cli.ts             # Gemini CLI subscription flow
-    codex-cli.ts              # Codex CLI subscription flow
-    openai-compat.ts          # OpenAI-compatible chat completions API flow
-    openai-embeddings.ts      # OpenAI-compatible embeddings API flow
-  authz/
-    engine.ts                 # skill+provider+model → allow/deny
-    policies.json             # matrix config
-  rate-limit/
-    budget.ts                 # per-skill daily token quota
-    circuit-breaker.ts        # per-provider failure trip
-  audit/
-    logger.ts                 # append-only JSONL (audit.log gitignored)
-  lib/
-    audit-log/index.ts        # shared sliding append (clone OTT)
-    rate-limit/index.ts       # shared sliding window (clone OTT)
+```text
+index.ts                    # dispatchCall() — 5-layer entry
+types.ts                    # AICallRequest, AICallResponse, OutcomeRecord
+adapters/
+  adapter-interface.ts      # IAIAdapter / IEmbedAdapter abstract contracts
+  anthropic-api.ts          # Anthropic Messages API, API-key flow
+  anthropic-cli.ts          # Claude CLI subscription flow
+  gemini-cli.ts             # Gemini CLI subscription flow
+  codex-cli.ts              # Codex CLI subscription flow
+  openai-compat.ts          # OpenAI-compatible chat completions API flow
+  openai-embeddings.ts      # OpenAI-compatible embeddings API flow
+authz/
+  engine.ts                 # skill+provider+model → allow/deny
+  policies.json             # matrix config (skill names + quotas — internal)
+rate-limit/
+  budget.ts                 # per-skill daily token quota
+  circuit-breaker.ts        # per-provider failure trip
+audit/
+  logger.ts                 # append-only JSONL (audit.log path via env)
+lib/
+  claude-limit/             # CLI usage-limit detect/state/error/alert (barrel)
+  proxy-override/           # original-API vs 9router proxy endpoint resolve
+  env/                      # LOCAL vs PROD detection
+  audit-log/                # shared sliding append
+  rate-limit/               # shared sliding window
+config/
+  proxy.json                # per-family proxy/env wiring (internal)
 ```
 
 ## Proxy config
 
 `lib/proxy-override/` resolves original-API-vs-9router-proxy endpoint + model-id
 prefix (`cc/`, `ds/`, `cx/`) per family (anthropic, deepseek, codex). Family
-knobs (prefix, original hosts, match rule, `baseUrlEnv` list, proxy-enable
-flag env, token-switch behavior) live in `config/proxy.json`, values = the
-original hardcode. `.env` still controls behavior at runtime (`NEXUS_CLAUDE_BASE_URL`,
-`NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE`, etc.) — `config/proxy.json` only
-declares which env vars matter per family and how they combine.
+knobs (prefix, original hosts, match rule, `baseUrlEnv` list, proxy-enable flag
+env, token-switch behavior) live in `config/proxy.json`. `.env` controls behavior
+at runtime (`NEXUS_CLAUDE_BASE_URL`, `NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE`,
+etc.) — `config/proxy.json` only declares which env vars matter per family and how
+they combine.
 
-Load priority: `AI_GATEWAY_PROXY_CONFIG` (explicit file path) > `AI_GATEWAY_CONFIG_ROOT/config/proxy.json`
+Load priority: `AI_GATEWAY_PROXY_CONFIG` > `AI_GATEWAY_CONFIG_ROOT/config/proxy.json`
 > co-located `config/proxy.json` (dist tree after `copy-assets`, or source tree).
-Missing/malformed file falls back to an in-code default (same values) — the
-gateway never throws on this path. `lib/env/index.ts` reads the same config's
-`localDetect` block for LOCAL vs PROD detection.
-
-Phase B (extracting this gateway into a shared repo across projects) is a later step — out of scope here.
+Missing/malformed file falls back to an in-code default (same values) — the gateway
+never throws on this path. `lib/env/index.ts` reads the same config's `localDetect`
+block for LOCAL vs PROD detection.
 
 ## Audit log
 
-- Path: `commons/ai-gateway/audit/audit.log` (gitignored — may contain prompt hashes/PII)
+- Path: `AI_GATEWAY_AUDIT_LOG_PATH` (set outside `node_modules` — see contract above)
+- Fallback: `<package>/audit/audit.log` (gitignored; lost on reinstall)
 - Format: JSON lines, one `OutcomeRecord` per call
-- Override: `AI_GATEWAY_AUDIT_LOG_PATH`
 - Retention: never delete (archive OK)
+
+## Build / test (maintainers)
+
+```bash
+npm install
+npm run build      # tsc + copy authz/config assets into dist/
+npm test           # node --test, 123 tests
+```
+
+`dist/` is committed so consumers pull a ready-to-run tree. Rebuild + recommit
+`dist/` before tagging a release.
