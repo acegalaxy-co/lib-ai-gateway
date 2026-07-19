@@ -16,9 +16,9 @@
 //
 // Conservative parser — when in doubt, classify as UNKNOWN (don't lock cooldown).
 
-type LimitKind = "session_5h" | "weekly_7d" | "rate_limit" | null;
+export type LimitKind = "session_5h" | "weekly_7d" | "rate_limit" | null;
 
-interface LimitMatch {
+export interface LimitMatch {
   kind: LimitKind;
   resetAt: number | null;   // unix ms; null if not parseable from stderr
   raw: string;              // truncated stderr (first 300 chars)
@@ -74,7 +74,7 @@ function _parseResetAt(stderr: string): number | null {
  * Inspect CLI stderr (or any error message) for limit signatures.
  * Returns null when no limit pattern matches — caller treats as generic error.
  */
-function detectClaudeLimit(stderr: string | null | undefined): LimitMatch | null {
+export function detectClaudeLimit(stderr: string | null | undefined): LimitMatch | null {
   if (!stderr || typeof stderr !== "string") return null;
   const s = stderr.trim();
   if (!s) return null;
@@ -99,7 +99,7 @@ function detectClaudeLimit(stderr: string | null | undefined): LimitMatch | null
 /**
  * Human-readable label for Alert Nexus messages (Vietnamese).
  */
-function limitKindLabel(kind: LimitKind): string {
+export function limitKindLabel(kind: LimitKind): string {
   switch (kind) {
     case "session_5h": return "Session (5h)";
     case "weekly_7d":  return "Weekly (7d)";
@@ -108,4 +108,3 @@ function limitKindLabel(kind: LimitKind): string {
   }
 }
 
-export = { detectClaudeLimit, limitKindLabel };

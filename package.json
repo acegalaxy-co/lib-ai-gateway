@@ -1,10 +1,20 @@
 {
-  "name": "@nexus/ai-gateway",
-  "version": "0.1.0",
+  "name": "@acegalaxy/ai-gateway",
+  "version": "1.0.0",
   "private": true,
-  "description": "In-repo runtime LLM call gateway (5-layer default-deny). Mirrors @nexus/ott-gateway pattern: skill-scoped authz, token budget, circuit breaker, append-only audit. Phase 1: anthropic-api adapter only.",
+  "description": "Shared runtime LLM call gateway (5-layer default-deny): skill-scoped authz, token budget, circuit breaker, append-only audit, config-driven proxy routing. Consumed cross-project via git-dependency (private — policies/proxy config is internal). private:true blocks accidental public-registry publish.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./lib/claude-limit": "./dist/lib/claude-limit/index.js",
+    "./audit/logger": "./dist/audit/logger.js"
+  },
+  "files": [
+    "dist/",
+    "config/",
+    "authz/policies.json"
+  ],
   "scripts": {
     "build": "tsc && npm run copy-assets",
     "copy-assets": "mkdir -p dist/authz && cp authz/policies.json dist/authz/policies.json && mkdir -p dist/config && cp config/proxy.json dist/config/proxy.json",
