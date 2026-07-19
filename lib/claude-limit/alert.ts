@@ -4,10 +4,26 @@
 // Rate-limited Telegram alerts to Alert Nexus channel on Claude CLI limit hit.
 // Tracks 1x per scheduler:kind per 1h to prevent spam.
 
+const path = require("node:path");
+
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 // Internal Map<key="scheduler:kind", lastAlertTime>
 const _alertTimes: Map<string, number> = new Map();
+
+// Resolve Nexus repo root from __dirname. This file runs from either
+// commons/ai-gateway/lib/claude-limit (tsx source) or
+// commons/ai-gateway/dist/lib/claude-limit (compiled) — the dist/ level shifts
+// the relative depth, so a hardcoded "../../.." breaks in one of them (the
+// old 6-up string was wrong for both → "Cannot find module", alerts silent).
+// Anchor on the "commons" path segment instead: robust to dist nesting.
+function _repoRoot(): string {
+  const parts = __dirname.split(path.sep);
+  const i = parts.lastIndexOf("commons");
+  return i > 0
+    ? parts.slice(0, i).join(path.sep)
+    : path.join(__dirname, "..", "..", "..", "..");
+}
 
 /**
  * Send alert to Telegram if enough time has passed since last alert for this scheduler:kind.
@@ -38,8 +54,10 @@ async function alertClaudeCliLimit(
   const message = `🚦 **CLAUDE CLI LIMIT** — Scheduler: ${schedulerName}\nSkill: ${skill}\nKind: ${kind || "rate-limit"}\nReset: ${resetLabel}\n\nScheduler paused until reset.`;
 
   try {
-    // Try to import notify module (path relative to this file)
-    const notify = require("../../../../../../src/app/modules/shared/telegram");
+    // Resolve from repo root (robust to dist/ vs src nesting — see _repoRoot).
+    const notify = require(
+      path.join(_repoRoot(), "src", "app", "modules", "shared", "telegram")
+    );
     const channelId = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
 
     if (!channelId) {
@@ -49,9 +67,10 @@ async function alertClaudeCliLimit(
       return;
     }
 
-    // Send async without awaiting (fire-and-forget)
+    // Send async without awaiting (fire-and-forget).
+    // sendTelegram(text, chatId, options) — text first, chatId second.
     notify
-      .sendTelegram(channelId, message)
+      .sendTelegram(message, channelId)
       .catch((e: any) => {
         console.error(
           "[ai-gateway][claude-limit-alert] Telegram send failed:",
