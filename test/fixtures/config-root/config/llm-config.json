@@ -1,0 +1,53 @@
+{
+  "_doc": "Test-only fixture for authz/engine.ts modelKey resolution (Layer 2 fallback shape). Loaded ONLY when AI_GATEWAY_CONFIG_ROOT points at test/fixtures/config-root (see test/setup-env.cjs, wired via npm test's --require preload). This directory is intentionally NOT shipped (test/ is excluded from package.json 'files'), so real consumers (e.g. Nexus, which has its own repo-root config/llm-config.json + data/llm-models-cache.json) are never shadowed by this fixture. Row shape: { id, provider, baseUrl?, apiKeyEnv?, active, type: 'API Key'|'Subscription' }. See authz/engine.ts _loadModels()/check() for resolution rules.",
+  "models": {
+    "sonnet_api": {
+      "id": "claude-sonnet-4-6",
+      "provider": "anthropic",
+      "apiKeyEnv": "NEXUS_ANTHROPIC_API_KEY",
+      "active": true,
+      "type": "API Key"
+    },
+    "sonnet_cli": {
+      "id": "claude-sonnet-4-6",
+      "provider": "anthropic",
+      "active": true,
+      "type": "Subscription"
+    },
+    "haiku_api": {
+      "id": "claude-haiku-4-5-20251001",
+      "provider": "anthropic",
+      "apiKeyEnv": "NEXUS_ANTHROPIC_API_KEY",
+      "active": true,
+      "type": "API Key"
+    },
+    "gemini_cli": {
+      "id": "gemini-2.5-flash",
+      "provider": "openai-compat",
+      "active": true,
+      "type": "Subscription"
+    },
+    "gemini_api": {
+      "id": "gemini-2.5-flash",
+      "provider": "openai-compat",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
+      "apiKeyEnv": "NEXUS_GEMINI_API_KEY",
+      "active": true,
+      "type": "API Key"
+    },
+    "codex_cli": {
+      "id": "gpt-5.5",
+      "provider": "openai-compat",
+      "active": true,
+      "type": "Subscription"
+    },
+    "deepseek_api": {
+      "id": "deepseek-v4-pro",
+      "provider": "deepseek-api",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY",
+      "active": true,
+      "type": "API Key"
+    }
+  }
+}

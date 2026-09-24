@@ -20,7 +20,7 @@
     "build": "tsc && npm run copy-assets",
     "copy-assets": "mkdir -p dist/authz && cp authz/policies.json dist/authz/policies.json && mkdir -p dist/config && cp config/proxy.json dist/config/proxy.json",
     "clean": "rm -rf dist",
-    "test": "node --test test/*.test.js"
+    "test": "node --require ./test/setup-env.cjs --test test/*.test.js"
   },
   "engines": {
     "node": ">=20"
