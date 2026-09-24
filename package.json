@@ -1,8 +1,9 @@
 {
-  "name": "@acegalaxy/ai-gateway",
-  "version": "1.0.0",
+  "name": "@acegalaxy/lib-ai-gateway",
+  "version": "1.1.0",
   "private": true,
   "description": "Shared runtime LLM call gateway (5-layer default-deny): skill-scoped authz, token budget, circuit breaker, append-only audit, config-driven proxy routing. Consumed cross-project via git-dependency (private — policies/proxy config is internal). private:true blocks accidental public-registry publish.",
+  "repository": "github:acegalaxy-co/lib-ai-gateway",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

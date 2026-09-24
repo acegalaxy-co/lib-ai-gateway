@@ -5,7 +5,7 @@
 // per 1h to prevent spam.
 //
 // Transport is INJECTED by the caller (dependency injection) — the gateway is
-// a standalone shared package (@acegalaxy/ai-gateway) and must NOT reach into
+// a standalone shared package (@acegalaxy/lib-ai-gateway) and must NOT reach into
 // the consumer app to resolve a telegram/notify module. The caller passes
 // `sendAlert(message, channelId)`; here we only decide cooldown + build the
 // message + read the channel env, then hand off.

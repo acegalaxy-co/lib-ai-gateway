@@ -1,4 +1,4 @@
-# @acegalaxy/ai-gateway
+# @acegalaxy/lib-ai-gateway
 
 Shared runtime LLM call gateway. 5-layer default-deny. Extracted from ACE Nexus
 so multiple projects consume one gateway and updates land in one place.
@@ -14,18 +14,18 @@ Ships prebuilt `dist/` — no build step in the consumer.
 ```jsonc
 // consumer package.json
 "dependencies": {
-  "@acegalaxy/ai-gateway": "git+ssh://git@github.com:acegalaxy-co/ai-gateway.git#v1.0.0"
+  "@acegalaxy/lib-ai-gateway": "github:acegalaxy-co/lib-ai-gateway#v1.1.0"
 }
 ```
 
-Pin a tag (`#v1.0.0`), not a branch. Bump the tag to upgrade. Private repo → the
-install host needs SSH/deploy-key access to `acegalaxy-co/ai-gateway`.
+Pin a tag (`#v1.1.0`), not a branch. Bump the tag to upgrade. Private repo → the
+install host needs SSH/deploy-key access to `acegalaxy-co/lib-ai-gateway`.
 
 ```ts
-const { dispatchCall } = require("@acegalaxy/ai-gateway");
+const { dispatchCall } = require("@acegalaxy/lib-ai-gateway");
 // subpath exports:
-const claudeLimit = require("@acegalaxy/ai-gateway/lib/claude-limit");
-const auditLogger = require("@acegalaxy/ai-gateway/audit/logger");
+const claudeLimit = require("@acegalaxy/lib-ai-gateway/lib/claude-limit");
+const auditLogger = require("@acegalaxy/lib-ai-gateway/audit/logger");
 ```
 
 ## Consumer contract — required env
@@ -69,7 +69,7 @@ class IAIAdapter {
 ## Entry point
 
 ```ts
-const { dispatchCall } = require("@acegalaxy/ai-gateway");
+const { dispatchCall } = require("@acegalaxy/lib-ai-gateway");
 
 const result = await dispatchCall({
   skill: "invoice-enrich.summarize",
@@ -168,3 +168,7 @@ npm test           # node --test, 123 tests
 
 `dist/` is committed so consumers pull a ready-to-run tree. Rebuild + recommit
 `dist/` before tagging a release.
+
+## Changelog
+
+- 1.1.0 — renamed from @acegalaxy/ai-gateway; private git-dep; npm package deprecated.
