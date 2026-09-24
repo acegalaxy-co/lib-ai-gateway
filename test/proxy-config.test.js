@@ -133,12 +133,12 @@ test("2. .env override resolves per-family baseUrlEnv from fixture config", () =
   _clean();
   const fixturePath = _writeFixture(DEFAULT_FIXTURE);
   process.env.AI_GATEWAY_PROXY_CONFIG = fixturePath;
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride, _resetConfigCache } = _loadProxyOverride();
     _resetConfigCache();
     const r = applyProxyOverride({ provider: "anthropic-cli", model: "claude-sonnet-4-6" });
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1", "baseUrl must be overridden by NEXUS_CLAUDE_BASE_URL");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1", "baseUrl must be overridden by NEXUS_CLAUDE_BASE_URL");
     assert.equal(r.model, "cc/claude-sonnet-4-6");
   } finally {
     fs.unlinkSync(fixturePath);

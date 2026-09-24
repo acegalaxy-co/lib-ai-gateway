@@ -151,7 +151,7 @@ test("engine.check() (no proxy env): codex_cli modelKey resolves bare model id",
 test("composed pipeline: NEXUS_CLAUDE_BASE_URL=9router → engine.check()+applyProxyOverride yields cc/ prefix + baseUrl", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.example.com/v1";
   try {
     const authz = _loadEngine();
     const bound = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
@@ -164,7 +164,7 @@ test("composed pipeline: NEXUS_CLAUDE_BASE_URL=9router → engine.check()+applyP
       apiKeyEnv: bound.apiKeyEnv,
     });
     assert.ok(r.model.startsWith("cc/"), `expected cc/ prefix, got model="${r.model}"`);
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1");
   } finally {
     _restoreEnv(snap);
   }
@@ -174,7 +174,7 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
   try {
     const bound = await _checkModelKeyRouting("deepseek_api");
@@ -198,7 +198,7 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.ch
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
   try {
     const bound = await _checkModelKeyRouting("codex_cli");
@@ -221,7 +221,7 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.ch
 test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (NEXUS_CLAUDE unset) still gets cc/ prefix", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.ANTHROPIC_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.ANTHROPIC_BASE_URL = "https://9router.example.com/v1";
   try {
     const authz = _loadEngine();
     const bound = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
@@ -234,7 +234,7 @@ test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (NEXUS_CLAUDE
       apiKeyEnv: bound.apiKeyEnv,
     });
     assert.ok(r.model.startsWith("cc/"), `expected cc/ prefix via legacy var, got model="${r.model}"`);
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1", "legacy ANTHROPIC_BASE_URL used as baseUrl fallback");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1", "legacy ANTHROPIC_BASE_URL used as baseUrl fallback");
   } finally {
     _restoreEnv(snap);
   }
@@ -245,11 +245,11 @@ test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (NEXUS_CLAUDE
 test("priority-order: NEXUS_CODEX_BASE_URL set (no flag) gets cx/ prefix + baseUrl carried, apiKeyEnv untouched", () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_CODEX_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride } = _loadProxyOverride();
     const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1");
     assert.ok(r.model.startsWith("cx/"), `9router requires cx/ prefix, got model="${r.model}"`);
     assert.equal(r.apiKeyEnv, undefined, "URL-only override (no flag) must not touch apiKeyEnv");
   } finally {
@@ -261,7 +261,7 @@ test("priority-order: deepseek NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 wins 
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
   process.env.NEXUS_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
   try {
@@ -283,9 +283,9 @@ test("priority-order: codex NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 wins over 
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  process.env.NEXUS_CODEX_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_CODEX_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride } = _loadProxyOverride();
     const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });

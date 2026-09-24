@@ -74,7 +74,7 @@ async function _withBaseUrl(value, fn) {
 }
 
 test("LOCAL (9router base url): anthropic model gets cc/ prefix", async () => {
-  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () =>
+  const r = await _withBaseUrl("https://9router.example.com/v1", () =>
     _resolve(ANTHROPIC_SKILL, ANTHROPIC_TIER),
   );
   assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
@@ -97,7 +97,7 @@ test("PROD (no base url): anthropic model stays bare (no cc/ prefix)", async () 
 
 test("idempotent: LOCAL twice yields identical prefixed model", async () => {
   const run = () =>
-    _withBaseUrl("https://9router.acegalaxy.co/v1", () =>
+    _withBaseUrl("https://9router.example.com/v1", () =>
       _resolve(ANTHROPIC_SKILL, ANTHROPIC_TIER),
     );
   const a = await run();
@@ -108,7 +108,7 @@ test("idempotent: LOCAL twice yields identical prefixed model", async () => {
 });
 
 test("openai-compat provider is NOT touched by cc/ normalization (local)", async () => {
-  const r = await _withBaseUrl("https://9router.acegalaxy.co/v1", () =>
+  const r = await _withBaseUrl("https://9router.example.com/v1", () =>
     _resolve(OPENAI_SKILL, OPENAI_TIER),
   );
   // summarize.fast binds to an openai-compat model (haiku is anthropic; fast=haiku

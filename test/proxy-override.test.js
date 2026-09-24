@@ -66,7 +66,7 @@ test("2. deepseek 9router flag=1: ds/ prefix + 9router baseUrl + token", () => {
   const snap = _snapshotEnv();
   _clean();
   process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-token";
   try {
     const { applyProxyOverride } = _load();
@@ -77,7 +77,7 @@ test("2. deepseek 9router flag=1: ds/ prefix + 9router baseUrl + token", () => {
       apiKeyEnv: "NEXUS_DEEPSEEK_API_KEY",
     });
     assert.equal(r.model, "ds/deepseek-v4-pro");
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1");
     assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
   } finally {
     _restoreEnv(snap);
@@ -92,7 +92,7 @@ test("3. REGRESSION GUARD — modelOverride path (provider openai-compat) for de
   const snap = _snapshotEnv();
   _clean();
   process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-token";
   try {
     const { applyProxyOverride } = _load();
@@ -103,7 +103,7 @@ test("3. REGRESSION GUARD — modelOverride path (provider openai-compat) for de
       apiKeyEnv: "NEXUS_DEEPSEEK_API_KEY",
     });
     assert.equal(r.model, "ds/deepseek-v4-pro");
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1");
     assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
   } finally {
     _restoreEnv(snap);
@@ -113,12 +113,12 @@ test("3. REGRESSION GUARD — modelOverride path (provider openai-compat) for de
 test("4. anthropic proxy: NEXUS_CLAUDE_BASE_URL=9router gets cc/ prefix", () => {
   const snap = _snapshotEnv();
   _clean();
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride } = _load();
     const r = applyProxyOverride({ provider: "anthropic-cli", model: "claude-sonnet-4-6" });
     assert.equal(r.model, "cc/claude-sonnet-4-6");
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1");
   } finally {
     _restoreEnv(snap);
   }
@@ -142,13 +142,13 @@ test("6. codex 9router flag=1: cx/ prefix + 9router baseUrl + token", () => {
   const snap = _snapshotEnv();
   _clean();
   process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-token";
   try {
     const { applyProxyOverride } = _load();
     const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });
     assert.equal(r.model, "cx/gpt-5.5");
-    assert.equal(r.baseUrl, "https://9router.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1");
     assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
   } finally {
     _restoreEnv(snap);
@@ -158,7 +158,7 @@ test("6. codex 9router flag=1: cx/ prefix + 9router baseUrl + token", () => {
 test("7. idempotent: re-applying to an already-prefixed model does not double-prefix", () => {
   const snap = _snapshotEnv();
   _clean();
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride } = _load();
     const r1 = applyProxyOverride({ provider: "anthropic-cli", model: "claude-sonnet-4-6" });
@@ -174,7 +174,7 @@ test("8. non-family provider untouched (gemini-cli), original unstripped model r
   const snap = _snapshotEnv();
   _clean();
   process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.acegalaxy.co/v1";
+  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
   process.env.NEXUS_9ROUTER_TOKEN = "test-token";
   try {
     const { applyProxyOverride } = _load();
@@ -196,7 +196,7 @@ test("8. non-family provider untouched (gemini-cli), original unstripped model r
 test("9. multi-proxy host coverage: alternate proxy host (9router2) is NOT treated as original", () => {
   const snap = _snapshotEnv();
   _clean();
-  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://9router2.acegalaxy.co/v1";
+  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://9router2.example.com/v1";
   try {
     const { applyProxyOverride } = _load();
     const r = applyProxyOverride({
@@ -206,7 +206,7 @@ test("9. multi-proxy host coverage: alternate proxy host (9router2) is NOT treat
       apiKeyEnv: "NEXUS_DEEPSEEK_API_KEY",
     });
     assert.equal(r.model, "ds/deepseek-v4-pro");
-    assert.equal(r.baseUrl, "https://9router2.acegalaxy.co/v1");
+    assert.equal(r.baseUrl, "https://9router2.example.com/v1");
     assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN", "9router-family host must switch key env even for alternate host");
   } finally {
     _restoreEnv(snap);
