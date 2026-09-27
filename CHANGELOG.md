@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0]
+
+### Added
+
+- `AICallRequest.timeoutMs` — optional per-call override of the policy
+  binding's `timeoutMs`. `dispatchCall` now passes
+  `req.timeoutMs ?? authzResult.timeoutMs` to `adapter.complete()` (falls
+  back to the policy value when unset or not a positive finite number).
+  Fixes callers whose task genuinely needs more/less time than the skill's
+  policy default (e.g. kane-crawler's `nhadathue-search` needs 7min but
+  `crawler.extract`'s policy binding is 300000ms) getting SIGKILLed by the
+  adapter subprocess at the policy timeout regardless of what the caller
+  requested.
+
 ### Fixed
 
 - 31 pre-existing failing tests (mislabeled "env-dependent") across

@@ -223,7 +223,7 @@ async function dispatchCall(req) {
                 schema: req.schema || null,
                 baseUrl: authzResult.baseUrl,
                 apiKeyEnv: authzResult.apiKeyEnv,
-                timeoutMs: authzResult.timeoutMs,
+                timeoutMs: Number.isFinite(req.timeoutMs) && req.timeoutMs > 0 ? req.timeoutMs : authzResult.timeoutMs,
                 allowedTools: authzResult.allowedTools,
                 // MCP config — prefer per-call override, else fall back to policy binding
                 mcpConfigPath: req.mcpConfigPath || authzResult.mcpConfigPath,

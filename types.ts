@@ -15,6 +15,7 @@ export interface AICallRequest {
   prompt: string;
   schema?: Record<string, unknown> | null;
   maxOutputTokens?: number;         // hard cap per call; budget guard may lower it
+  timeoutMs?: number;                // per-call override of policy binding timeout (caller knows its task size)
   metadata?: Record<string, unknown>;
 }
 

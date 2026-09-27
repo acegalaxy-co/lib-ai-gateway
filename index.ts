@@ -64,6 +64,7 @@ interface AICallRequest {
 
   schema?: Record<string, unknown> | null;
   maxOutputTokens?: number;
+  timeoutMs?: number;              // per-call override of policy binding timeout (caller knows its task size)
   metadata?: Record<string, unknown>;
   // Optional runtime MCP config path — used by anthropic-cli adapter to load
   // MCP servers (e.g. CloakBrowser for crawler). Can also be declared per-skill
@@ -318,7 +319,7 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
         schema: req.schema || null,
         baseUrl: authzResult.baseUrl,
         apiKeyEnv: authzResult.apiKeyEnv,
-        timeoutMs: authzResult.timeoutMs,
+        timeoutMs: Number.isFinite(req.timeoutMs) && (req.timeoutMs as number) > 0 ? req.timeoutMs : authzResult.timeoutMs,
         allowedTools: authzResult.allowedTools,
         // MCP config — prefer per-call override, else fall back to policy binding
         mcpConfigPath: req.mcpConfigPath || authzResult.mcpConfigPath,

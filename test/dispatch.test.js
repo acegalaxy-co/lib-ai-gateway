@@ -323,3 +323,94 @@ test("authz modelKey routing: deepseek_api uses dedicated deepseek-api route", a
   assert.equal(result.baseUrl, "https://api.deepseek.com/v1");
   assert.equal(result.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY");
 });
+
+// ============================================================
+// 2026-09-28: per-call timeoutMs override. Caller (e.g. kane-crawler's
+// nhadathue-search feature, TASK_TIMEOUT_MS=7min) must be able to override
+// the policy binding's timeoutMs (crawler.extract balanced = 300000) so the
+// adapter subprocess isn't SIGKILLed at 5min while the caller expected 7min.
+// Verified via the anthropic-cli adapter's spawn({ timeout }) option — that
+// is the literal value dispatchCall handed to adapter.complete().
+// ============================================================
+test("timeoutMs override: req.timeoutMs forwarded to adapter over policy binding", async () => {
+  const restore = _forceProd();
+  const cpModule = require("child_process");
+  const origSpawn = cpModule.spawn;
+  const captured = {};
+  cpModule.spawn = function _spawnStub(_cmd, _argv, opts) {
+    captured.opts = opts;
+    const { EventEmitter } = require("node:events");
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    setImmediate(() => {
+      child.stdout.emit("data", Buffer.from("ok"));
+      child.emit("close", 0, null);
+    });
+    return child;
+  };
+  try {
+    const { gw } = _load();
+    await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x", timeoutMs: 420000 });
+    assert.equal(captured.opts.timeout, 420000, "adapter receives caller override, not policy 300000");
+  } finally {
+    cpModule.spawn = origSpawn;
+    restore();
+  }
+});
+
+test("timeoutMs override: invalid (0, NaN, negative) falls back to policy timeout", async () => {
+  const restore = _forceProd();
+  const cpModule = require("child_process");
+  const origSpawn = cpModule.spawn;
+  for (const bad of [0, NaN, -100]) {
+    const captured = {};
+    cpModule.spawn = function _spawnStub(_cmd, _argv, opts) {
+      captured.opts = opts;
+      const { EventEmitter } = require("node:events");
+      const child = new EventEmitter();
+      child.stdout = new EventEmitter();
+      child.stderr = new EventEmitter();
+      setImmediate(() => {
+        child.stdout.emit("data", Buffer.from("ok"));
+        child.emit("close", 0, null);
+      });
+      return child;
+    };
+    try {
+      const { gw } = _load();
+      await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x", timeoutMs: bad });
+      assert.equal(captured.opts.timeout, 300000, `policy timeout used when override invalid (${bad})`);
+    } finally {
+      cpModule.spawn = origSpawn;
+    }
+  }
+  restore();
+});
+
+test("timeoutMs override: unset → policy timeout used (unchanged behavior)", async () => {
+  const restore = _forceProd();
+  const cpModule = require("child_process");
+  const origSpawn = cpModule.spawn;
+  const captured = {};
+  cpModule.spawn = function _spawnStub(_cmd, _argv, opts) {
+    captured.opts = opts;
+    const { EventEmitter } = require("node:events");
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    setImmediate(() => {
+      child.stdout.emit("data", Buffer.from("ok"));
+      child.emit("close", 0, null);
+    });
+    return child;
+  };
+  try {
+    const { gw } = _load();
+    await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
+    assert.equal(captured.opts.timeout, 300000, "no override → policy timeout unchanged");
+  } finally {
+    cpModule.spawn = origSpawn;
+    restore();
+  }
+});

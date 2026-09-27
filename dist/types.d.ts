@@ -6,6 +6,7 @@ export interface AICallRequest {
     prompt: string;
     schema?: Record<string, unknown> | null;
     maxOutputTokens?: number;
+    timeoutMs?: number;
     metadata?: Record<string, unknown>;
 }
 export interface AICallResponse {

@@ -26,6 +26,7 @@ interface AICallRequest {
     modelOverride?: ModelOverride;
     schema?: Record<string, unknown> | null;
     maxOutputTokens?: number;
+    timeoutMs?: number;
     metadata?: Record<string, unknown>;
     mcpConfigPath?: string;
     systemPromptCacheable?: boolean;
