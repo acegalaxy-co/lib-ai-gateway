@@ -108,7 +108,7 @@
     },
     {
       "path": ".claude/skills/ace-library/SKILL.md",
-      "sha256": "74904de1607d3af824f594ab8c10f86eccd01da62a7cd5e7ffd91664171c87b2"
+      "sha256": "13be613b61dd011e0acde33e325634b198bf013622864a2308502ccd5f3c3840"
     },
     {
       "path": ".claude/skills/audit-claude-md/SKILL.md",
@@ -140,7 +140,7 @@
     },
     {
       "path": ".claude/skills/diagram/SKILL.md",
-      "sha256": "0f57fae4af783f61049a3c61f4c6f6eaeedb7cf106cb323b46e37e413cdcf44e"
+      "sha256": "3c7860a8faa9f1245b855dad00e26d64afad65e4c0cf555ad6b2f1da80b9b5de"
     },
     {
       "path": ".claude/skills/doctor-memory/SKILL.md",
