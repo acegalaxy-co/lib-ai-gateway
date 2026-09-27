@@ -139,6 +139,10 @@
       "sha256": "81464896921356df2e0d00b6ac89a297f21b68e162732a13b467f3f0453d9b46"
     },
     {
+      "path": ".claude/skills/diagram/SKILL.md",
+      "sha256": "0f57fae4af783f61049a3c61f4c6f6eaeedb7cf106cb323b46e37e413cdcf44e"
+    },
+    {
       "path": ".claude/skills/doctor-memory/SKILL.md",
       "sha256": "d318f13d4c769628efb69060199b05f82dc607770d889dcc03dbeff0e81c02ab"
     },
@@ -211,10 +215,6 @@
       "sha256": "6becc152672fe08e3c64e779104090928884169e49186d034ec21d7a7f2ada09"
     },
     {
-      "path": "CLAUDE.md",
-      "sha256": "4870bb44d3cd499433024fac98988408456d0ec1fc1d25fed34fd96173d46cf5"
-    },
-    {
       "path": "scripts/delegate/_common.sh",
       "sha256": "c0118cf6eb6bf8bfcbe2df0ccadc3a137c0687ec35b0f83183aa7bd1f43fbabb"
     },
@@ -246,7 +246,8 @@
     ".claude/rules/project/git-workflow.md",
     ".claude/rules/project/processes-layout.md",
     ".claude/rules/project/skill-superpowers.md",
-    ".claude/rules/project/test-parallel.md"
+    ".claude/rules/project/test-parallel.md",
+    "CLAUDE.md"
   ],
   "installEnv": {
     "HARNESS_CORE_DIRS": "src",
@@ -322,9 +323,19 @@
         "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
       },
       {
+        "event": "SessionStart",
+        "matcher": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh",
+        "command": ""
+      },
+      {
         "event": "SubagentStop",
         "matcher": "",
         "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/subagent-stop-record.sh"
+      },
+      {
+        "event": "SubagentStop",
+        "matcher": "$CLAUDE_PROJECT_DIR/.claude/hooks/subagent-stop-record.sh",
+        "command": ""
       }
     ],
     "deny": [
