@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "harnessVersion": "1",
+  "syncFiles": [
+    {
+      "path": ".claude/agents/code-reviewer.md",
+      "sha256": "38db544015763dec1bd9a2452202b6dd11dcc9745c2ec7ac12091e683bcfce6a"
+    },
+    {
+      "path": ".claude/agents/delegate-codex.md",
+      "sha256": "ae4a268b6a7411b837c3769ecbbfce7279d18ff8038b5e9ec15c11aefc16fcdd"
+    },
+    {
+      "path": ".claude/agents/delegate-deepseek.md",
+      "sha256": "40c33f0cc0071feaa81150092c214b565fe34c22cfccb0efe0128fa3fd1e3df0"
+    },
+    {
+      "path": ".claude/agents/delegate-gemini.md",
+      "sha256": "23180b99483eff487ea461f5cdbae8e39f1d989e306842f41d9b6381c32ab8de"
+    },
+    {
+      "path": ".claude/agents/delegate-sonnet.md",
+      "sha256": "413e3b39ae6db971e2cea1e59a3b67dd8544118b5e576c466b0886ee63ded66b"
+    },
+    {
+      "path": ".claude/agents/secret-scanner.md",
+      "sha256": "ba2543e600d73eb011804c5447e2c26c3b673e117c710284117d1a226b0f9b67"
+    },
+    {
+      "path": ".claude/hooks/post-bash-stuck-detector.sh",
+      "sha256": "1c1b4ecf885d854ce2213a0c2cf42e013e68f5ad07d6cc71ff800c87ce542c7d"
+    },
+    {
+      "path": ".claude/hooks/post-edit-advisor.sh",
+      "sha256": "ffc581564660b9ae4fe565b337ed0613b22d0e1558ed944f405fa655f20bbc58"
+    },
+    {
+      "path": ".claude/hooks/pre-bash-gate.sh",
+      "sha256": "c62d173c6657a8b26cbcb195098ba5e23d66ba066d550f63587b1265bf257510"
+    },
+    {
+      "path": ".claude/hooks/pre-browser-profile-gate.sh",
+      "sha256": "f6aa5d710ae55c290ba945c86f73e44cba25dda422d30858ae1f5ef8bcf62302"
+    },
+    {
+      "path": ".claude/hooks/pre-compact-guard.sh",
+      "sha256": "d3105b1232e47728aeb563d3fea58481f29ab13e9da3c44987c328a6624a4d28"
+    },
+    {
+      "path": ".claude/hooks/pre-edit-content-scan.sh",
+      "sha256": "053c17b48555988dc07d01c369187938b4c999ee42236df203719cca87beafb1"
+    },
+    {
+      "path": ".claude/hooks/pre-edit-orchestrator-gate.sh",
+      "sha256": "63c90299bcc4169c5beaeed3de6cffd63e4bc1c64425ee057f1cfa0d810e3738"
+    },
+    {
+      "path": ".claude/hooks/pre-task-dispatch-gate.sh",
+      "sha256": "7c46f71415beb4a064919b1960d486e9fd29a4189cdfc4061ba280df69cb84b8"
+    },
+    {
+      "path": ".claude/hooks/session-start.sh",
+      "sha256": "cef078807fa9c5e941b435be20f24b4acebf95744aa23f54a8c4c5d8678b73a7"
+    },
+    {
+      "path": ".claude/hooks/subagent-stop-record.sh",
+      "sha256": "06be263ade66603ad34ec47022c5cfdfce8954d54d132f33d782909a5d5be1b6"
+    },
+    {
+      "path": ".claude/rules/common/delegate-llm.md",
+      "sha256": "748fd79754565dced8be552db068b8984f96818cd0f2f126e9aee70fe39a9037"
+    },
+    {
+      "path": ".claude/rules/common/feature-redflags.md",
+      "sha256": "095d341e1af3010a496e070509d6284b6a49ac9b63504f88c09967d158f757a8"
+    },
+    {
+      "path": ".claude/rules/common/general.md",
+      "sha256": "abe459b8fe0095581157d13f1f93cfe7b2850a4122069f2c4b77cb403c5def48"
+    },
+    {
+      "path": ".claude/rules/common/git-conventions.md",
+      "sha256": "8fc29d8138e383bf586505664a127ae3846f0b584f474fbe3ce4cfb6f1eaf786"
+    },
+    {
+      "path": ".claude/rules/common/memory-mirror.md",
+      "sha256": "eaf8c2fabf9745e991556a1f46a31bcd2a32b994e73296e91fd45cde864becba"
+    },
+    {
+      "path": ".claude/rules/common/orchestrator.md",
+      "sha256": "b0ae541ff3cdcf27bf403f235eecd408107ddf2a861048e4afe65c6bb9051a85"
+    },
+    {
+      "path": ".claude/rules/common/rule-loading-policy.md",
+      "sha256": "899eb8c58af693d15c4be3cdf3f4693ebe3be1c9e90cf0f3d95bfcd036c88c2a"
+    },
+    {
+      "path": ".claude/rules/common/secrets-no-printout.md",
+      "sha256": "b14f2fee45933e3f92e932d2c4659a37107b20f24bb79b149dc6715db682a1eb"
+    },
+    {
+      "path": ".claude/rules/common/token-budget.md",
+      "sha256": "33b04b968ce1c17b4b088314c2cc9d6b9a3718fe5d4ce82829b1a8d3ec048967"
+    },
+    {
+      "path": ".claude/rules/common/vault-no-mcp.md",
+      "sha256": "09423b6ae0529283c5d670b9f48091ed2ea75033e5c0318dbcb5c530b7c2b2fe"
+    },
+    {
+      "path": ".claude/skills/ace-library/SKILL.md",
+      "sha256": "74904de1607d3af824f594ab8c10f86eccd01da62a7cd5e7ffd91664171c87b2"
+    },
+    {
+      "path": ".claude/skills/audit-claude-md/SKILL.md",
+      "sha256": "d1935bdf446f5f5185410ed4cc5713eff387aabd3b36ca583e060357f754f0c4"
+    },
+    {
+      "path": ".claude/skills/audit-context-memory/SKILL.md",
+      "sha256": "cc31e97a570139967b8b596acc0a75a74e762ab798c445f007497ec3fb35d68e"
+    },
+    {
+      "path": ".claude/skills/audit-dependency/SKILL.md",
+      "sha256": "e1f1da2049ec895a2cd060013b2dde68a1d41eb1c097f1edfb48ac55bf3de2c5"
+    },
+    {
+      "path": ".claude/skills/audit-vietnamese/SKILL.md",
+      "sha256": "ebb1bbba8bee942581053db0b77fe2f6dd029abe15bbefbdc242f88d331b92b9"
+    },
+    {
+      "path": ".claude/skills/check-hardcode/SKILL.md",
+      "sha256": "d1d3bcdc62b4fd097d99d82e52982fe258e4bfe5c6dbe35e9186592292ce9b4d"
+    },
+    {
+      "path": ".claude/skills/clean-up-project/SKILL.md",
+      "sha256": "a5a652a15c7c9081081ecff791d8e9ee3aded4709163e5d2361d1ddf5036f1ea"
+    },
+    {
+      "path": ".claude/skills/dep-ladder-check/SKILL.md",
+      "sha256": "81464896921356df2e0d00b6ac89a297f21b68e162732a13b467f3f0453d9b46"
+    },
+    {
+      "path": ".claude/skills/doctor-memory/SKILL.md",
+      "sha256": "d318f13d4c769628efb69060199b05f82dc607770d889dcc03dbeff0e81c02ab"
+    },
+    {
+      "path": ".claude/skills/fix-ledger/SKILL.md",
+      "sha256": "af921582095f064f5eae4c28b0a23552c77086379fd94c9ff29385224babbcc3"
+    },
+    {
+      "path": ".claude/skills/git-cleanup-branch/SKILL.md",
+      "sha256": "f42291b264619c57cc1337a484babcf2024ac68851bfc2921faff2a9629d293c"
+    },
+    {
+      "path": ".claude/skills/git-commit-describe/SKILL.md",
+      "sha256": "ced3c4b41af6ee888c5f396c7545842d296830dcb8e1ed4dc3e84531bf1e0ab0"
+    },
+    {
+      "path": ".claude/skills/git-commit/SKILL.md",
+      "sha256": "44ad26921858891c1d1a51c10f9823985b02aced7bb456e7e31e0b2f68495fd5"
+    },
+    {
+      "path": ".claude/skills/git-force-snapshot/SKILL.md",
+      "sha256": "ce05618558f22911e2df9cd5829be115810b7ce936a08ff056eb6a029f53d5dd"
+    },
+    {
+      "path": ".claude/skills/git-push-safety/SKILL.md",
+      "sha256": "03c4f46989498451595ed339bcb5b1f4e69c2c92843b38682d524260876db3e9"
+    },
+    {
+      "path": ".claude/skills/orchestrate/SKILL.md",
+      "sha256": "809497ee1da2066533d7ac78ec26e44ea10509600eaf67c2363443bc7dd9aa8a"
+    },
+    {
+      "path": ".claude/skills/production-cleanup/SKILL.md",
+      "sha256": "5940ddf582970950bc67b4875d0be0e35d8ae9e22e99be50bd64b64da248c18e"
+    },
+    {
+      "path": ".claude/skills/production-deploy/SKILL.md",
+      "sha256": "e97b3b00893ca99393e23c2f68cc8ea6ce7e01ed2556b7cde8a1f5d7540c0882"
+    },
+    {
+      "path": ".claude/skills/production-reboot/SKILL.md",
+      "sha256": "73a633e3fbc2e0b59b80b7ee282799caee8c00a70a300eb6534576b2d396bdcc"
+    },
+    {
+      "path": ".claude/skills/task-loop-feature/SKILL.md",
+      "sha256": "3c6d1af1eebaead16dc4f9dd7d8cd55f54301581596d42e23defea0beea5b774"
+    },
+    {
+      "path": ".claude/skills/update-claude/SKILL.md",
+      "sha256": "bd749a52d753e69155e03e3e54b0f17bc653629260b0940c45916499eb299511"
+    },
+    {
+      "path": ".claude/skills/update-codex/SKILL.md",
+      "sha256": "cd962afd8a03521250f07e11a10a45a280b653d88126c1a0b3c448e21706626e"
+    },
+    {
+      "path": ".claude/skills/update-deepseek/SKILL.md",
+      "sha256": "062ad0c3242ec040dbcea6bb9b76cd11faa1d00248593c476aa12c9d8119436b"
+    },
+    {
+      "path": ".claude/skills/update-gemini/SKILL.md",
+      "sha256": "0ba2c4bc827c331fee80de672fe2c88a1c019934179d6b7e9eaed5ff0a2c9311"
+    },
+    {
+      "path": ".claude/statusline-orchestration.sh",
+      "sha256": "fbf724465174826c48331d0960783d581909afb756f64e3267c374ed05e89242"
+    },
+    {
+      "path": ".git/hooks/pre-push",
+      "sha256": "6becc152672fe08e3c64e779104090928884169e49186d034ec21d7a7f2ada09"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "4870bb44d3cd499433024fac98988408456d0ec1fc1d25fed34fd96173d46cf5"
+    },
+    {
+      "path": "scripts/delegate/_common.sh",
+      "sha256": "c0118cf6eb6bf8bfcbe2df0ccadc3a137c0687ec35b0f83183aa7bd1f43fbabb"
+    },
+    {
+      "path": "scripts/delegate/doctor.sh",
+      "sha256": "40905d98b191439a5a4517437b0af56b7b0f06d4cfd896bc5def1512e4028ef3"
+    },
+    {
+      "path": "scripts/delegate/lib/sitecustomize.py",
+      "sha256": "1c5c783e11695c0cf68d3b5beaa10e4f5e02980e3fa48d761c654e830f41ccff"
+    },
+    {
+      "path": "scripts/delegate/run-aider-deepseek.sh",
+      "sha256": "7f1ac2e7ed572c5771754c4b636d69718ebb1a85c1e6eb909e6b453e9c8d47d4"
+    },
+    {
+      "path": "scripts/delegate/run-codex.sh",
+      "sha256": "690e881b41da904880c6deb72db3e47c5480697f6a04f06a8cc3789fc35792a4"
+    },
+    {
+      "path": "scripts/delegate/run-gemini.sh",
+      "sha256": "66bd0a5c76ad885bdc7eacd78fdfd5169355a2167860647af8bac15f7636bb1c"
+    }
+  ],
+  "preservePaths": [
+    ".claude/allowed-hosts.txt",
+    ".claude/memory-mirror/MEMORY.md",
+    ".claude/rules/project/browser-mcp-profiles.md",
+    ".claude/rules/project/git-workflow.md",
+    ".claude/rules/project/processes-layout.md",
+    ".claude/rules/project/skill-superpowers.md",
+    ".claude/rules/project/test-parallel.md"
+  ],
+  "installEnv": {
+    "HARNESS_CORE_DIRS": "src",
+    "HARNESS_RISK_DIRS": "",
+    "HARNESS_PROJECT_SLUG": "lib-ai-gateway",
+    "HARNESS_BRANCH": "",
+    "HARNESS_TEST_CMD": "npm test",
+    "HARNESS_GROUP_SUBAGENTS": "y",
+    "HARNESS_GROUP_GUARD": "y",
+    "HARNESS_GROUP_QUALITY": "y",
+    "HARNESS_GROUP_COMMANDS": "y",
+    "HARNESS_GROUP_SKILLS": "y",
+    "HARNESS_GROUP_RULES": "y",
+    "HARNESS_GROUP_GITHOOKS": "y",
+    "HARNESS_GROUP_DEPLOY": "y",
+    "HARNESS_DEPLOY_SSH_HOST": "<deploy-ssh-host>",
+    "HARNESS_DEPLOY_SERVICE": "<service-name>",
+    "HARNESS_DEPLOY_PATH": "<remote-repo-path>",
+    "HARNESS_DEPLOY_BRANCH": "",
+    "HARNESS_DEPLOY_REMOTE": "origin",
+    "HARNESS_DEPLOY_HEALTHCHECK": "<healthcheck-cmd>"
+  },
+  "settings": {
+    "hooks": [
+      {
+        "event": "PostToolUse",
+        "matcher": "Bash",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-bash-stuck-detector.sh"
+      },
+      {
+        "event": "PostToolUse",
+        "matcher": "Edit|Write|MultiEdit",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-advisor.sh"
+      },
+      {
+        "event": "PreCompact",
+        "matcher": "auto",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact-guard.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Bash",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-gate.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Bash",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-browser-profile-gate.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-content-scan.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-orchestrator-gate.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Task",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-task-dispatch-gate.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "mcp__(pw_|cloak|playwright|browser).*",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-browser-profile-gate.sh"
+      },
+      {
+        "event": "SessionStart",
+        "matcher": "",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+      },
+      {
+        "event": "SubagentStop",
+        "matcher": "",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/subagent-stop-record.sh"
+      }
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(rm -rf .git:*)",
+      "Edit(./**/*.pem)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(./secrets/**)",
+      "Read(./**/*.pem)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Write(./**/*.pem)",
+      "Write(./.env)",
+      "Write(./.env.*)",
+      "Write(./secrets/**)"
+    ],
+    "env": {
+      "HARNESS_DELEGATE": "1",
+      "HARNESS_RISK_DIRS": ""
+    },
+    "statusLineCommand": "bash $CLAUDE_PROJECT_DIR/.claude/statusline-orchestration.sh"
+  }
+}
