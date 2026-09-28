@@ -69,12 +69,17 @@ class GeminiCLIAdapter extends IAIAdapter {
 
     // coreTools → temp GEMINI_CLI_SYSTEM_SETTINGS_PATH file. Created before
     // spawn, removed in the finally below (success or failure alike).
+    // 2026-09-28: gemini-cli >=0.4x reads tool restriction from the nested
+    // `tools.core` key — a flat `{"coreTools":[...]}` is silently ignored
+    // (verified live: shell stayed enabled under --yolo with the flat key;
+    // a real `touch` call succeeded). Keep our request field named
+    // `coreTools`, just nest it correctly for the CLI.
     let tmpDir: string | null = null;
     let env = process.env;
     if (Array.isArray(req.coreTools)) {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "gemini-settings-"));
       const settingsPath = path.join(tmpDir, "settings.json");
-      fs.writeFileSync(settingsPath, JSON.stringify({ coreTools: req.coreTools }));
+      fs.writeFileSync(settingsPath, JSON.stringify({ tools: { core: req.coreTools } }));
       env = { ...process.env, GEMINI_CLI_SYSTEM_SETTINGS_PATH: settingsPath };
     }
 

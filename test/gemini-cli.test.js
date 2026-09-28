@@ -257,8 +257,10 @@ test("gemini-cli: yolo + outputJson + allowedMcpServerNames + coreTools build ar
     assert.equal(optsCapture.opts.detached, true);
 
     assert.ok(settingsFileContentAtSpawnTime, "settings file must exist while child is running");
+    // gemini-cli >=0.4x reads tool restriction from nested tools.core — a
+    // flat coreTools key is silently ignored (verified live).
     assert.deepEqual(JSON.parse(settingsFileContentAtSpawnTime), {
-      coreTools: ["run_shell_command", "web_fetch"],
+      tools: { core: ["run_shell_command", "web_fetch"] },
     });
 
     // Cleanup happens after close — temp dir must be gone by the time complete() resolves.

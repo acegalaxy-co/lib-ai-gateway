@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.3.1]
+
+### Fixed
+
+- gemini-cli `coreTools` setting used the flat `{"coreTools":[...]}` schema,
+  which gemini CLI >=0.4x silently ignores — tool restriction was
+  ineffective (verified live: shell stayed enabled under `--yolo`, a real
+  `touch` call succeeded). Now writes the nested `{"tools":{"core":[...]}}`
+  schema, which the CLI actually enforces (verified: model reports no shell
+  tool, no file created). Request field name (`coreTools`) unchanged.
+
 ## [1.3.0]
 
 ### Added
