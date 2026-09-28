@@ -73,6 +73,15 @@ interface AICallRequest {
   mcpConfigPath?: string;
   // Anthropic-only hint: wrap systemPrompt with cache_control ephemeral.
   systemPromptCacheable?: boolean;
+
+  // gemini-cli browse options (2026-09-28) — gateway now owns gemini CLI
+  // spawns for consumers doing browser/MCP tasks. All optional, gemini-only
+  // (other adapters ignore them). See adapters/subscription/gemini-cli.ts.
+  cwd?: string;
+  yolo?: boolean;
+  outputJson?: boolean;
+  allowedMcpServerNames?: string[];
+  coreTools?: string[];
 }
 
 interface AICallResponse {
@@ -323,6 +332,12 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
         allowedTools: authzResult.allowedTools,
         // MCP config — prefer per-call override, else fall back to policy binding
         mcpConfigPath: req.mcpConfigPath || authzResult.mcpConfigPath,
+        // gemini-cli browse options — per-call only, ignored by other adapters.
+        cwd: req.cwd,
+        yolo: req.yolo,
+        outputJson: req.outputJson,
+        allowedMcpServerNames: req.allowedMcpServerNames,
+        coreTools: req.coreTools,
       });
       breaker.recordSuccess(provider);
     } catch (err: unknown) {

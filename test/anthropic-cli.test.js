@@ -230,3 +230,82 @@ test("anthropic-cli: whitespace-only model → --model omitted (treated as empty
     assert.equal(captured.argv.indexOf("--model"), -1, "--model must be omitted for whitespace-only");
   });
 });
+
+// ============================================================
+// 2026-09-28: process-group kill. spawn() no longer takes `timeout` — the
+// adapter runs its own setTimeout + SIGKILLs the whole process group
+// (`process.kill(-child.pid, ...)`) so MCP server children (CloakBrowser/
+// Chromium) don't survive a timeout and keep the browser profile locked.
+// ============================================================
+test("anthropic-cli: spawns detached (process-group kill prerequisite), no `timeout` spawn opt", async () => {
+  const optsCapture = {};
+  const stub = function _spawnStub(_cmd, _argv, opts) {
+    optsCapture.opts = opts;
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    setImmediate(() => {
+      child.stdout.emit("data", Buffer.from("ok"));
+      child.emit("close", 0, null);
+    });
+    return child;
+  };
+  await _withSpawn(stub, async () => {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const adapter = new AnthropicCLIAdapter();
+    await adapter.complete({ prompt: "x", model: "m", maxOutputTokens: 100 });
+  });
+  assert.equal(optsCapture.opts.detached, true);
+  assert.equal(optsCapture.opts.timeout, undefined, "timeout must move off spawn opts (own setTimeout handles it now)");
+});
+
+test("anthropic-cli: timeout kills whole process group (grandchild dies with parent)", { skip: process.platform === "win32" }, async () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "claude-pgkill-"));
+  const scriptPath = path.join(tmpDir, "fake-claude.sh");
+  const pidFile = path.join(tmpDir, "grandchild.pid");
+  fs.writeFileSync(scriptPath, "#!/bin/sh\nsleep 60 &\necho $! > \"$PIDFILE\"\nwait\n");
+  fs.chmodSync(scriptPath, 0o755);
+
+  const origBin = process.env.CLAUDE_CLI_BIN;
+  const origPidFile = process.env.PIDFILE;
+  process.env.CLAUDE_CLI_BIN = scriptPath;
+  process.env.PIDFILE = pidFile;
+
+  try {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const adapter = new AnthropicCLIAdapter();
+    await assert.rejects(
+      () => adapter.complete({ prompt: "x", model: "m", maxOutputTokens: 100, timeoutMs: 300 }),
+      /claude killed \(SIGKILL\) — timeout\?/,
+    );
+
+    let grandchildPid = null;
+    for (let i = 0; i < 20 && grandchildPid === null; i++) {
+      if (fs.existsSync(pidFile)) {
+        const raw = fs.readFileSync(pidFile, "utf8").trim();
+        if (raw) grandchildPid = parseInt(raw, 10);
+      }
+      if (grandchildPid === null) await new Promise((r) => setTimeout(r, 50));
+    }
+    assert.ok(grandchildPid, "expected grandchild pid to be recorded by fake CLI script");
+
+    let alive = true;
+    for (let i = 0; i < 30 && alive; i++) {
+      try {
+        process.kill(grandchildPid, 0);
+        await new Promise((r) => setTimeout(r, 100));
+      } catch (_e) {
+        alive = false;
+      }
+    }
+    assert.equal(alive, false, "grandchild process must be killed along with the process group");
+  } finally {
+    if (origBin === undefined) delete process.env.CLAUDE_CLI_BIN; else process.env.CLAUDE_CLI_BIN = origBin;
+    if (origPidFile === undefined) delete process.env.PIDFILE; else process.env.PIDFILE = origPidFile;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

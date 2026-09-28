@@ -30,6 +30,11 @@ interface AICallRequest {
     metadata?: Record<string, unknown>;
     mcpConfigPath?: string;
     systemPromptCacheable?: boolean;
+    cwd?: string;
+    yolo?: boolean;
+    outputJson?: boolean;
+    allowedMcpServerNames?: string[];
+    coreTools?: string[];
 }
 interface AICallResponse {
     outcome: "allow" | "deny";

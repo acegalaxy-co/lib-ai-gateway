@@ -80,18 +80,33 @@ class AnthropicCLIAdapter extends IAIAdapter {
             // env explicitly rather than relying on inherited process env, so the
             // per-vendor NEXUS_CLAUDE_BASE_URL override (or empty → direct API)
             // always wins regardless of what the parent process has set.
+            // detached: true → child gets its own process group (pgid = child.pid).
+            // On timeout we SIGKILL the whole group so MCP server children
+            // (CloakBrowser/Chromium) spawned by the CLI die too, instead of
+            // surviving and keeping the browser profile locked.
             const child = spawn(cmd, argv, {
-                timeout,
-                killSignal: "SIGKILL",
+                detached: true,
                 stdio: ["ignore", "pipe", "pipe"],
                 env: { ...process.env, ANTHROPIC_BASE_URL: String(req.baseUrl || "").trim() },
             });
+            const timer = setTimeout(() => {
+                try {
+                    process.kill(-child.pid, "SIGKILL");
+                }
+                catch (_e) {
+                    try {
+                        child.kill("SIGKILL");
+                    }
+                    catch (_e2) { /* already dead */ }
+                }
+            }, timeout);
             let out = "";
             let err = "";
             child.stdout.on("data", (d) => { out += d.toString(); });
             child.stderr.on("data", (d) => { err += d.toString(); });
-            child.on("error", (e) => reject(new Error(`spawn failed: ${e.message}`)));
+            child.on("error", (e) => { clearTimeout(timer); reject(new Error(`spawn failed: ${e.message}`)); });
             child.on("close", (code, signal) => {
+                clearTimeout(timer);
                 if (signal)
                     return reject(new Error(`claude killed (${signal}) — timeout?`));
                 if (code !== 0) {

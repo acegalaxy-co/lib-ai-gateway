@@ -227,6 +227,12 @@ async function dispatchCall(req) {
                 allowedTools: authzResult.allowedTools,
                 // MCP config — prefer per-call override, else fall back to policy binding
                 mcpConfigPath: req.mcpConfigPath || authzResult.mcpConfigPath,
+                // gemini-cli browse options — per-call only, ignored by other adapters.
+                cwd: req.cwd,
+                yolo: req.yolo,
+                outputJson: req.outputJson,
+                allowedMcpServerNames: req.allowedMcpServerNames,
+                coreTools: req.coreTools,
             });
             breaker.recordSuccess(provider);
         }

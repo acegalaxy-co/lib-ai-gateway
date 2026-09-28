@@ -6,6 +6,11 @@ interface AdapterCompleteRequest {
     schema?: Record<string, unknown> | null;
     skill?: string;
     timeoutMs?: number;
+    cwd?: string;
+    yolo?: boolean;
+    outputJson?: boolean;
+    allowedMcpServerNames?: string[];
+    coreTools?: string[];
 }
 interface AdapterCompleteResponse {
     text: string | null;

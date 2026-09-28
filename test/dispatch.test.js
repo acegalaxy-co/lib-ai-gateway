@@ -331,12 +331,33 @@ test("authz modelKey routing: deepseek_api uses dedicated deepseek-api route", a
 // adapter subprocess isn't SIGKILLed at 5min while the caller expected 7min.
 // Verified via the anthropic-cli adapter's spawn({ timeout }) option — that
 // is the literal value dispatchCall handed to adapter.complete().
+//
+// 2026-09-28 update: anthropic-cli no longer passes `timeout` to spawn()
+// options (process-group kill needs its own setTimeout so it can SIGKILL
+// the whole group, not just the direct child — see adapters/subscription/
+// anthropic-cli.ts). These tests now assert the ms value handed to that
+// internal setTimeout() instead of the removed spawn opts.timeout field, and
+// that the child is spawned detached (prerequisite for group-kill).
 // ============================================================
+function _captureAdapterTimeout() {
+  const origSetTimeout = global.setTimeout;
+  const captured = { ms: null };
+  global.setTimeout = function (fn, ms, ...rest) {
+    captured.ms = ms;
+    return origSetTimeout(fn, ms, ...rest);
+  };
+  return {
+    captured,
+    restore() { global.setTimeout = origSetTimeout; },
+  };
+}
+
 test("timeoutMs override: req.timeoutMs forwarded to adapter over policy binding", async () => {
   const restore = _forceProd();
   const cpModule = require("child_process");
   const origSpawn = cpModule.spawn;
   const captured = {};
+  const timeoutSpy = _captureAdapterTimeout();
   cpModule.spawn = function _spawnStub(_cmd, _argv, opts) {
     captured.opts = opts;
     const { EventEmitter } = require("node:events");
@@ -352,9 +373,11 @@ test("timeoutMs override: req.timeoutMs forwarded to adapter over policy binding
   try {
     const { gw } = _load();
     await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x", timeoutMs: 420000 });
-    assert.equal(captured.opts.timeout, 420000, "adapter receives caller override, not policy 300000");
+    assert.equal(captured.opts.detached, true, "spawn must be detached for process-group kill");
+    assert.equal(timeoutSpy.captured.ms, 420000, "adapter receives caller override, not policy 300000");
   } finally {
     cpModule.spawn = origSpawn;
+    timeoutSpy.restore();
     restore();
   }
 });
@@ -365,6 +388,7 @@ test("timeoutMs override: invalid (0, NaN, negative) falls back to policy timeou
   const origSpawn = cpModule.spawn;
   for (const bad of [0, NaN, -100]) {
     const captured = {};
+    const timeoutSpy = _captureAdapterTimeout();
     cpModule.spawn = function _spawnStub(_cmd, _argv, opts) {
       captured.opts = opts;
       const { EventEmitter } = require("node:events");
@@ -380,9 +404,10 @@ test("timeoutMs override: invalid (0, NaN, negative) falls back to policy timeou
     try {
       const { gw } = _load();
       await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x", timeoutMs: bad });
-      assert.equal(captured.opts.timeout, 300000, `policy timeout used when override invalid (${bad})`);
+      assert.equal(timeoutSpy.captured.ms, 300000, `policy timeout used when override invalid (${bad})`);
     } finally {
       cpModule.spawn = origSpawn;
+      timeoutSpy.restore();
     }
   }
   restore();
@@ -393,6 +418,7 @@ test("timeoutMs override: unset → policy timeout used (unchanged behavior)", a
   const cpModule = require("child_process");
   const origSpawn = cpModule.spawn;
   const captured = {};
+  const timeoutSpy = _captureAdapterTimeout();
   cpModule.spawn = function _spawnStub(_cmd, _argv, opts) {
     captured.opts = opts;
     const { EventEmitter } = require("node:events");
@@ -408,9 +434,10 @@ test("timeoutMs override: unset → policy timeout used (unchanged behavior)", a
   try {
     const { gw } = _load();
     await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
-    assert.equal(captured.opts.timeout, 300000, "no override → policy timeout unchanged");
+    assert.equal(timeoutSpy.captured.ms, 300000, "no override → policy timeout unchanged");
   } finally {
     cpModule.spawn = origSpawn;
+    timeoutSpy.restore();
     restore();
   }
 });
