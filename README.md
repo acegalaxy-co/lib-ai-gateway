@@ -104,6 +104,36 @@ Skill name → env var: uppercase, `.` and `-` → `_`. Example `crawler.extract
 
 Env override applies ONLY to Anthropic providers (`anthropic-api`, `anthropic-cli`). Skills bound `openai-compat` (DeepSeek/Gemini) are untouched — cross-provider swap needs `baseUrl` + `apiKeyEnv` which env vars can't carry.
 
+## Provider remap via env
+
+`AI_GATEWAY_REMAP_<PROVIDER>` (PROVIDER = provider string uppercased, `-` → `_`,
+e.g. `anthropic-api` → `AI_GATEWAY_REMAP_ANTHROPIC_API`) redirects EVERY call
+that resolves to that provider — tier binding, `modelOverride`, env-model-override,
+or the policy `*` default — to a different `llmModels` registry row. Value =
+a registry modelKey (same registry `authz/engine.ts` already resolves `modelKey`
+bindings from). Lets a consumer swap a provider to another registry row purely
+via env — no hardcoded model/url/key, no code change, no policy edit.
+
+```bash
+# PROD Anthropic API credit exhausted → reroute anthropic-api calls to the
+# codex_api registry row (provider/model/baseUrl/apiKeyEnv all come from
+# config/llm-config.json / data/llm-models-cache.json under that key).
+AI_GATEWAY_REMAP_ANTHROPIC_API=codex_api npm run start
+```
+
+- Applied AFTER `modelOverride`/env-model-override resolve the provider, BEFORE
+  the proxy-override layer — the remap target's own family (anthropic/deepseek/
+  codex) still gets `cc/`/`ds/`/`cx/` proxy routing normally.
+- Single hop only — the remap target's provider is never looked up again
+  against another `AI_GATEWAY_REMAP_*` var (no chains, no loops).
+- Unknown modelKey, or a row marked `active: false` for a cost-metered provider
+  (`openai-compat` / `openai-embeddings` / `deepseek-api` — same rule as tier-binding
+  `modelKey` resolution), denies with `L2_remap_invalid` — it does NOT silently
+  fall back to the original provider.
+- `result.remappedFrom` (and the audit `OutcomeRecord`) is set to the ORIGINAL
+  provider whenever a remap applied; unset otherwise.
+- Unset/empty env → identical behavior to no remap.
+
 ## Files
 
 ```text
@@ -163,7 +193,7 @@ block for LOCAL vs PROD detection.
 ```bash
 npm install
 npm run build      # tsc + copy authz/config assets into dist/
-npm test           # node --test, 123 tests
+npm test           # node --test, 139 tests
 ```
 
 `dist/` is committed so consumers pull a ready-to-run tree. Rebuild + recommit

@@ -50,9 +50,12 @@ interface AdapterCompleteResponse {
 }
 
 // GPT-5 family rejects max_tokens; uses max_completion_tokens. Detect by id
-// prefix (safe for non-OpenAI providers which don't use gpt-5 prefix).
+// prefix (safe for non-OpenAI providers which don't use gpt-5 prefix). Model
+// ids may carry a proxy prefix (e.g. "cx/gpt-5.5" — see lib/proxy-override/
+// "codex" family) — strip a leading `<letters>/` before testing.
 function _maxTokensField(modelId: string): string {
-  return /^gpt-5(\.|-)/i.test(String(modelId || "")) ? "max_completion_tokens" : "max_tokens";
+  const bare = String(modelId || "").replace(/^[a-z]+\//i, "");
+  return /^gpt-5(\.|-)/i.test(bare) ? "max_completion_tokens" : "max_tokens";
 }
 
 // Convert Anthropic ToolSpec[] → OpenAI tools[] shape.

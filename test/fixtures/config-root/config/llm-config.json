@@ -48,6 +48,14 @@
       "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY",
       "active": true,
       "type": "API Key"
+    },
+    "codex_api": {
+      "id": "gpt-5.5",
+      "provider": "openai-compat",
+      "baseUrl": "https://proxy.example.com/v1",
+      "apiKeyEnv": "NEXUS_CODEX_API_KEY",
+      "active": true,
+      "type": "API Key"
     }
   }
 }

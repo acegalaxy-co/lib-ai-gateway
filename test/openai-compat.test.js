@@ -80,6 +80,36 @@ test("openai-compat: GPT-5 uses max_completion_tokens (not max_tokens)", async (
   }
 });
 
+test("openai-compat: cx/-prefixed gpt-5 (proxy routing) still uses max_completion_tokens", async () => {
+  // Model ids carry a proxy prefix on the 9router/codex path (lib/proxy-override
+  // "codex" family, prefix "cx/") — the gpt-5 detection must strip it before
+  // testing, or a remapped/proxied gpt-5 call silently sends the wrong field
+  // and OpenAI rejects the request.
+  let observedBody = null;
+  const restore = _mockFetch(async (_url, opts) => {
+    observedBody = JSON.parse(opts.body);
+    return {
+      ok: true, status: 200,
+      json: async () => ({ choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }),
+    };
+  });
+  process.env.TEST_OPENAI_KEY = "test";
+
+  try {
+    const adapter = new OpenAICompatAdapter();
+    await adapter.complete({
+      prompt: "x", model: "cx/gpt-5.5", maxOutputTokens: 100,
+      baseUrl: "https://9router.example.com/v1", apiKeyEnv: "TEST_OPENAI_KEY",
+    });
+    assert.equal(observedBody.max_completion_tokens, 100);
+    assert.equal(observedBody.max_tokens, undefined);
+    assert.equal(observedBody.model, "cx/gpt-5.5", "model id itself is sent verbatim with prefix");
+  } finally {
+    restore();
+    delete process.env.TEST_OPENAI_KEY;
+  }
+});
+
 test("openai-compat: non-GPT model uses max_tokens", async () => {
   let observedBody = null;
   const restore = _mockFetch(async (_url, opts) => {

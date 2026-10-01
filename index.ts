@@ -24,6 +24,7 @@ type Tier = "fast" | "balanced" | "deep";
 type DenyReason =
   | "L1_provider_unavailable"
   | "L2_authz"
+  | "L2_remap_invalid"
   | "L3_budget_exhausted"
   | "L4_circuit_open"
   | "L5_audit_fatal";
@@ -97,6 +98,9 @@ interface AICallResponse {
   // Chat-mode tool-use extras (null otherwise):
   needsToolExecution?: boolean;
   response?: Record<string, unknown> | null;
+  // Set when AI_GATEWAY_REMAP_<PROVIDER> redirected this call — holds the
+  // ORIGINAL provider (pre-remap). See _applyProviderRemap().
+  remappedFrom?: string;
 }
 
 interface OutcomeRecord {
@@ -113,6 +117,8 @@ interface OutcomeRecord {
   // Anthropic prompt cache stats (null if no cache used)
   cachedTokensIn?: number;
   cacheCreationIn?: number;
+  // Set when AI_GATEWAY_REMAP_<PROVIDER> redirected this call.
+  remappedFrom?: string;
 }
 
 const _adapters: Map<string, any> = new Map();
@@ -172,6 +178,28 @@ function _nowIso(): string {
  * Bind Haiku to all Anthropic skills:
  *   NEXUS_AI_GATEWAY_MODEL_DEFAULT=claude-haiku-4-5
  */
+/**
+ * Resolve a provider-wide remap target from env.
+ *
+ * `AI_GATEWAY_REMAP_<PROVIDER>` (PROVIDER = provider string uppercased,
+ * `-` → `_`, e.g. `anthropic-api` → `AI_GATEWAY_REMAP_ANTHROPIC_API`) names a
+ * llmModels registry modelKey. When set, EVERY call that resolves to that
+ * provider (tier binding, modelOverride, env-model-override, policy `*`
+ * default — applied after all of those) is redirected to the registry row's
+ * provider+model+baseUrl+apiKeyEnv instead. Generic across any provider so a
+ * consumer can swap e.g. anthropic-api → a DeepSeek/Gemini/proxy row without
+ * a lib code change. Unset/empty → unchanged behavior.
+ *
+ * Single hop only — the remap target's own provider is never looked up again
+ * against another AI_GATEWAY_REMAP_* var (no chains/loops).
+ */
+function _resolveRemapEnv(provider: string | null | undefined): string | null {
+  if (!provider) return null;
+  const envName = "AI_GATEWAY_REMAP_" + String(provider).toUpperCase().replace(/-/g, "_");
+  const v = (process.env[envName] || "").trim();
+  return v || null;
+}
+
 function _resolveEnvModelOverride(skill: string, provider: string): string | null {
   if (provider !== "anthropic-api" && provider !== "anthropic-cli") return null;
   const skillEnvKey =
@@ -244,6 +272,32 @@ async function dispatchCall(req: AICallRequest): Promise<AICallResponse> {
       // NEXUS_AI_GATEWAY_MODEL_DEFAULT for all Anthropic skills.
       const envModel = _resolveEnvModelOverride(req.skill, authzResult.provider);
       if (envModel) authzResult.model = envModel;
+    }
+
+    // Provider remap via env (AI_GATEWAY_REMAP_<PROVIDER>) — runs AFTER
+    // modelOverride/env-model-override so it catches the FINAL pre-proxy
+    // provider regardless of which path produced it, and BEFORE
+    // applyProxyOverride so the remap target's own family (e.g. deepseek)
+    // still gets proxy-routed normally.
+    const remapModelKey = _resolveRemapEnv(authzResult.provider);
+    if (remapModelKey) {
+      const remapped = authz.resolveModelKey(remapModelKey);
+      const invalid = !remapped || (!remapped.active && authz._isCostMetered(remapped.provider));
+      if (invalid) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[ai-gateway] remap target modelKey '${remapModelKey}' (from AI_GATEWAY_REMAP_${String(authzResult.provider).toUpperCase().replace(/-/g, "_")}) is ${remapped ? "inactive" : "not in"} the llmModels registry — denying instead of silently keeping the original provider.`,
+        );
+        outcome.denyReason = "L2_remap_invalid";
+        resp.denyReason = "L2_remap_invalid";
+        return await _finalize(resp, outcome, started);
+      }
+      outcome.remappedFrom = authzResult.provider;
+      resp.remappedFrom = authzResult.provider;
+      authzResult.provider = remapped.provider;
+      authzResult.model = remapped.model;
+      authzResult.baseUrl = remapped.baseUrl;
+      authzResult.apiKeyEnv = remapped.apiKeyEnv;
     }
 
     // Single proxy-override layer — resolve original-vs-proxy endpoint + model

@@ -69,6 +69,28 @@ interface CheckResult {
   dailyTokenQuota?: number;
 }
 
+interface ResolvedModelKey {
+  provider: string;
+  model: string;
+  baseUrl?: string;
+  apiKeyEnv?: string;
+  // Raw registry `active` flag (default true). Whether this actually blocks
+  // the caller depends on the resolved provider — see _isCostMetered().
+  active: boolean;
+}
+
+// Providers metered by external API cost — a registry row marked `active:
+// false` for one of these blocks the call. Anthropic CLI (session
+// subscription) + Anthropic API are exempt: Nexus keeps their registry row
+// `active=false` while PROD credit is zero, but the subscription-tier CLI
+// still runs fine, and a straight API-key row is not itself the thing going
+// stale. Shared by check() (tier-binding modelKey) and index.ts (env remap)
+// so both paths agree on what counts as "invalid".
+const COST_METERED_PROVIDERS = new Set(["openai-compat", "openai-embeddings", "deepseek-api"]);
+function _isCostMetered(provider: string): boolean {
+  return COST_METERED_PROVIDERS.has(provider);
+}
+
 let _policies: PoliciesFile | null = null;
 let _models: Record<string, ModelRow> | null = null;
 let _modelsLoadedAt = 0;
@@ -158,6 +180,53 @@ function _modelsSource(): "cache" | "config" | "empty" {
   return "empty";
 }
 
+// Resolve a llmModels registry row (`data/llm-models-cache.json` / fallback
+// `config/llm-config.json`) into the provider+model+baseUrl+apiKeyEnv the
+// gateway should dial, applying the same type-aware routing rule check()
+// uses for a tier binding's `modelKey`:
+//   - Subscription anthropic        → anthropic-cli
+//   - Subscription openai-compat    → gemini-cli (id startsWith "gemini") |
+//                                      codex-cli (id "o1"/"gpt-5-codex*"/"gpt-5*") |
+//                                      openai-compat (otherwise)
+//   - API Key anthropic             → anthropic-api
+//   - API Key deepseek-api          → deepseek-api (no-op passthrough)
+//   - anything else                 → row.provider verbatim
+// Returns null if modelKey isn't in the registry. Caller decides whether
+// `active: false` blocks the call (see _isCostMetered — differs between a
+// tier binding and a remap target no caller-visible difference today, but
+// kept as the caller's call so both sites stay in one place for the rule).
+function resolveModelKey(modelKey: string): ResolvedModelKey | null {
+  const registry = _loadModels();
+  const row = registry[modelKey];
+  if (!row || !row.id) return null;
+
+  let effectiveProvider = row.provider;
+  if (row.type === "Subscription") {
+    if (row.provider === "anthropic") effectiveProvider = "anthropic-cli";
+    else if (row.provider === "openai-compat") {
+      if (row.id && row.id.startsWith("gemini")) effectiveProvider = "gemini-cli";
+      // Codex CLI: o1, gpt-5-codex*, or any gpt-5* subscription (9router cx/ models).
+      else if (row.id === "o1" || (row.id && (row.id.startsWith("gpt-5-codex") || row.id.startsWith("gpt-5")))) effectiveProvider = "codex-cli";
+      else effectiveProvider = row.provider;
+    }
+  } else if (row.type === "API Key") {
+    if (row.provider === "anthropic") effectiveProvider = "anthropic-api";
+    // Dedicated DeepSeek adapter (2026-07-09) — registry row provider is
+    // "deepseek-api" directly (see config/llm-config.json), so this branch
+    // is mostly a no-op passthrough; kept explicit for readability/audit.
+    else if (row.provider === "deepseek-api") effectiveProvider = "deepseek-api";
+    // openai-compat stays as-is for API Key
+  }
+
+  return {
+    provider: effectiveProvider,
+    model: row.id,
+    baseUrl: row.baseUrl,
+    apiKeyEnv: row.apiKeyEnv,
+    active: row.active !== false,
+  };
+}
+
 async function check(skill: string, tier: string): Promise<CheckResult> {
   if (!skill) return { allow: false, reason: "no skill" };
   if (!tier) return { allow: false, reason: "no tier" };
@@ -184,49 +253,22 @@ async function check(skill: string, tier: string): Promise<CheckResult> {
   let resolvedApiKeyEnv = binding.apiKeyEnv;
 
   if (binding.modelKey) {
-    const registry = _loadModels();
-    const row = registry[binding.modelKey];
-    if (!row || !row.id) {
+    const resolved = resolveModelKey(binding.modelKey);
+    if (!resolved) {
       return { allow: false, reason: `modelKey '${binding.modelKey}' not in llmModels registry` };
-    }
-
-    // Type-aware provider routing (2026-07-09): Subscription models → CLI
-    // adapters, API Key models → REST adapters. The Notion 'Type' column
-    // decides which sub-adapter handles this row.
-    let effectiveProvider = row.provider;
-    if (row.type === "Subscription") {
-      if (row.provider === "anthropic") effectiveProvider = "anthropic-cli";
-      else if (row.provider === "openai-compat") {
-        if (row.id && row.id.startsWith("gemini")) effectiveProvider = "gemini-cli";
-        // Codex CLI: o1, gpt-5-codex*, or any gpt-5* subscription (9router cx/ models).
-        else if (row.id === "o1" || (row.id && (row.id.startsWith("gpt-5-codex") || row.id.startsWith("gpt-5")))) effectiveProvider = "codex-cli";
-        else effectiveProvider = row.provider;
-      }
-    } else if (row.type === "API Key") {
-      if (row.provider === "anthropic") effectiveProvider = "anthropic-api";
-      // Dedicated DeepSeek adapter (2026-07-09) — registry row provider is
-      // "deepseek-api" directly (see config/llm-config.json), so this branch
-      // is mostly a no-op passthrough; kept explicit for readability/audit.
-      else if (row.provider === "deepseek-api") effectiveProvider = "deepseek-api";
-      // openai-compat stays as-is for API Key
     }
 
     // active=false enforcement only for cost-metered API providers. Anthropic
     // CLI (session subscription) + Anthropic API remain permitted regardless
     // — Nexus Notion row keeps them `active=false` while credits are zero but
     // subscription-tier CLI still runs.
-    if (
-      row.active === false &&
-      (effectiveProvider === "openai-compat" ||
-        effectiveProvider === "openai-embeddings" ||
-        effectiveProvider === "deepseek-api")
-    ) {
+    if (!resolved.active && _isCostMetered(resolved.provider)) {
       return { allow: false, reason: `modelKey '${binding.modelKey}' is inactive in llmModels registry` };
     }
-    if (!resolvedProvider) resolvedProvider = effectiveProvider;
-    if (!resolvedModel) resolvedModel = row.id;
-    if (resolvedBaseUrl === undefined && row.baseUrl) resolvedBaseUrl = row.baseUrl;
-    if (resolvedApiKeyEnv === undefined && row.apiKeyEnv) resolvedApiKeyEnv = row.apiKeyEnv;
+    if (!resolvedProvider) resolvedProvider = resolved.provider;
+    if (!resolvedModel) resolvedModel = resolved.model;
+    if (resolvedBaseUrl === undefined && resolved.baseUrl) resolvedBaseUrl = resolved.baseUrl;
+    if (resolvedApiKeyEnv === undefined && resolved.apiKeyEnv) resolvedApiKeyEnv = resolved.apiKeyEnv;
   }
 
   if (!resolvedProvider || !resolvedModel) {
@@ -271,4 +313,4 @@ function _reset(): void {
   _modelsLoadedAt = 0;
 }
 
-export = { check, _reset, _modelsSource };
+export = { check, _reset, _modelsSource, resolveModelKey, _isCostMetered };

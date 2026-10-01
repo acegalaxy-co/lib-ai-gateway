@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.0]
+
+### Added
+
+- Provider remap via env: `AI_GATEWAY_REMAP_<PROVIDER>` (PROVIDER = provider
+  string uppercased, `-`→`_`) redirects every call that resolves to that
+  provider — tier binding, `modelOverride`, env-model-override, or the
+  policy `*` default — to a different `llmModels` registry row, entirely via
+  env (no hardcoded model/url/key in the lib). Use case: PROD Anthropic API
+  credit exhausted → set `AI_GATEWAY_REMAP_ANTHROPIC_API=codex_api` (or any
+  other registry modelKey) to reroute without touching `policies.json` or
+  shipping a code change. Single hop only (no chains/loops); unknown/inactive
+  (for cost-metered providers) remap target denies with `L2_remap_invalid`
+  instead of silently keeping the original provider. Applied after
+  modelOverride/env-override, before the proxy-override layer, so the remap
+  target's own family (anthropic/deepseek/codex) still gets proxy-routed
+  normally. `authz/engine.ts` now exports `resolveModelKey()` — the
+  type-aware registry→provider resolution previously inlined in `check()` —
+  reused by both the tier-binding path and the remap path. Outcome/response
+  gain `remappedFrom: <original provider>` when a remap applied.
+
+### Fixed
+
+- `openai-compat` adapter's gpt-5 `max_completion_tokens` detection now
+  strips a leading proxy prefix (e.g. `cx/gpt-5.5`) before testing — a
+  proxied/remapped gpt-5 model id was silently sent with `max_tokens`
+  instead, which OpenAI rejects for that family. Shared by the DeepSeek
+  adapter (reuses this helper) and anything resolving through the `codex`
+  proxy-override family.
+
 ## [1.3.1]
 
 ### Fixed

@@ -1,5 +1,5 @@
 type Tier = "fast" | "balanced" | "deep";
-type DenyReason = "L1_provider_unavailable" | "L2_authz" | "L3_budget_exhausted" | "L4_circuit_open" | "L5_audit_fatal";
+type DenyReason = "L1_provider_unavailable" | "L2_authz" | "L2_remap_invalid" | "L3_budget_exhausted" | "L4_circuit_open" | "L5_audit_fatal";
 interface ChatMessage {
     role: "user" | "assistant" | "system";
     content: string | Array<Record<string, unknown>>;
@@ -48,6 +48,7 @@ interface AICallResponse {
     latencyMs: number;
     needsToolExecution?: boolean;
     response?: Record<string, unknown> | null;
+    remappedFrom?: string;
 }
 declare function dispatchCall(req: AICallRequest): Promise<AICallResponse>;
 interface AIEmbedRequest {
