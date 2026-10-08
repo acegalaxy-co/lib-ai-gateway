@@ -42,16 +42,29 @@ function _toCliModel(model) {
         return "haiku";
     return String(model).trim(); // non-anthropic / already-alias → passthrough
 }
+const DEFAULT_PROVIDER = "anthropic-cli";
 class AnthropicCLIAdapter extends IAIAdapter {
+    _provider;
+    // Non-default provider (e.g. "antigravity-cli": Claude Code CLI pointed at a
+    // proxy that routes `--model antigravity/...` to Gemini) gets its own
+    // limit-cooldown key and a verbatim model arg. Breaker isolation is handled
+    // by dispatchCall keying on the provider string.
+    constructor(opts = {}) {
+        super();
+        this._provider = (opts && opts.provider) || DEFAULT_PROVIDER;
+    }
     get provider() {
-        return "anthropic-cli";
+        return this._provider;
     }
     async complete(req) {
         const timeout = req.timeoutMs || DEFAULT_TIMEOUT_MS;
         const allowedTools = req.allowedTools || "";
         const skill = req.skill || "unknown";
+        const isDefault = this._provider === DEFAULT_PROVIDER;
+        // Limit-state key: bare skill for Claude (unchanged), namespaced otherwise.
+        const limitKey = isDefault ? skill : `${this._provider}:${skill}`;
         // Pre-check: if skill is in cooldown, throw error immediately (avoid spawn).
-        const skipCheck = limitState.shouldSkip(skill);
+        const skipCheck = limitState.shouldSkip(limitKey);
         if (skipCheck.skip) {
             throw new ClaudeCliLimitError(skill, {
                 kind: skipCheck.kind,
@@ -67,7 +80,7 @@ class AnthropicCLIAdapter extends IAIAdapter {
             // Model — pass alias resolved from policy/env-override value. Normalize
             // full IDs → CLI alias (CLI rejects full IDs; see _toCliModel). Skip if
             // empty so CLI keeps subscription default.
-            const modelArg = _toCliModel(req.model);
+            const modelArg = isDefault ? _toCliModel(req.model) : String(req.model || "").trim();
             if (modelArg)
                 argv.push("--model", modelArg);
             if (allowedTools)
@@ -117,7 +130,7 @@ class AnthropicCLIAdapter extends IAIAdapter {
                     // Try to detect limit hit from combined output.
                     const match = detectClaudeLimit(diag);
                     if (match) {
-                        limitState.markLimitHit(skill, match);
+                        limitState.markLimitHit(limitKey, match);
                         return reject(new ClaudeCliLimitError(skill, match));
                     }
                     // Generic error — include combined diag (was stderr-only → empty on
@@ -128,7 +141,7 @@ class AnthropicCLIAdapter extends IAIAdapter {
                 if (!trimmed)
                     return reject(new Error("claude returned empty output"));
                 // Success — clear any prior cooldown for this skill.
-                limitState.clearLimit(skill);
+                limitState.clearLimit(limitKey);
                 resolve(trimmed);
             });
         });

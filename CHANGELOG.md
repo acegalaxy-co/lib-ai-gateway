@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.5.0]
+
+### Added
+
+- Provider `antigravity-cli`: reuses `AnthropicCLIAdapter` (Claude Code CLI)
+  for Gemini models routed by a proxy (`--model antigravity/<model>`). Has its
+  own circuit breaker (keyed by provider string) and its own per-skill
+  limit-cooldown key (`antigravity-cli:<skill>`), so it stays usable when the
+  Claude provider is failing or rate-limited. Model id is passed to the CLI
+  verbatim (no alias normalization). Select via
+  `modelOverride: { provider: "antigravity-cli", model: "antigravity/<model>" }`.
+  `AnthropicCLIAdapter` now accepts an optional `{ provider }` constructor arg;
+  default (`anthropic-cli`) behavior is unchanged.
+
 ## [1.4.0]
 
 ### Added

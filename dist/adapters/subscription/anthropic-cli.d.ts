@@ -19,6 +19,10 @@ interface AdapterCompleteResponse {
 }
 declare function _toCliModel(model: string): string;
 declare class AnthropicCLIAdapter extends IAIAdapter {
+    private readonly _provider;
+    constructor(opts?: {
+        provider?: string;
+    });
     get provider(): string;
     complete(req: AdapterCompleteRequest): Promise<AdapterCompleteResponse>;
     estimateTokens(prompt: string): number;

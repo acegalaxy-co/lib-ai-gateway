@@ -134,6 +134,17 @@ AI_GATEWAY_REMAP_ANTHROPIC_API=codex_api npm run start
   provider whenever a remap applied; unset otherwise.
 - Unset/empty env → identical behavior to no remap.
 
+## Provider `antigravity-cli`
+
+Runs Gemini models through the Claude Code CLI: the CLI is pointed at a proxy
+(9router) by its own settings and `--model antigravity/<model>` makes the proxy
+route to Gemini. It shares `AnthropicCLIAdapter` with `anthropic-cli` but has
+its own circuit breaker and its own limit-cooldown key (`antigravity-cli:<skill>`),
+so it works as a fallback while Claude is failing. The model id is passed to the
+CLI verbatim. Select it per call with
+`modelOverride: { provider: "antigravity-cli", model: "antigravity/<model>" }`.
+Env model override does not apply to it.
+
 ## Files
 
 ```text
@@ -142,7 +153,7 @@ types.ts                    # AICallRequest, AICallResponse, OutcomeRecord
 adapters/
   adapter-interface.ts      # IAIAdapter / IEmbedAdapter abstract contracts
   anthropic-api.ts          # Anthropic Messages API, API-key flow
-  anthropic-cli.ts          # Claude CLI subscription flow
+  anthropic-cli.ts          # Claude CLI subscription flow (also serves antigravity-cli)
   gemini-cli.ts             # Gemini CLI subscription flow
   codex-cli.ts              # Codex CLI subscription flow
   openai-compat.ts          # OpenAI-compatible chat completions API flow

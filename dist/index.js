@@ -35,6 +35,9 @@ function _getAdapter(provider) {
         case "anthropic-cli":
             adapter = new AnthropicCLIAdapter();
             break;
+        case "antigravity-cli":
+            adapter = new AnthropicCLIAdapter({ provider: "antigravity-cli" });
+            break;
         case "gemini-cli":
             adapter = new GeminiCLIAdapter();
             break;
