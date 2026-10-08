@@ -100,7 +100,7 @@
     },
     {
       "path": ".claude/rules/common/secrets-no-printout.md",
-      "sha256": "b14f2fee45933e3f92e932d2c4659a37107b20f24bb79b149dc6715db682a1eb"
+      "sha256": "77b911010c788c9ddff58b5ad3f871d026074a277def1ebc05b4b58783ae009c"
     },
     {
       "path": ".claude/rules/common/token-budget.md",
