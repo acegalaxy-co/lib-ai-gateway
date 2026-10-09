@@ -80,7 +80,7 @@
     },
     {
       "path": ".claude/rules/common/general.md",
-      "sha256": "d8e257be0a996ef333b2bcb7ca1052660b4e42ab838ed743ad9992eaef588766"
+      "sha256": "d390d84894e9ebc4fc1925bc472ffa0e604399265bb51f4b3ffae8bf38a50a3e"
     },
     {
       "path": ".claude/rules/common/git-conventions.md",
@@ -159,6 +159,22 @@
       "sha256": "af921582095f064f5eae4c28b0a23552c77086379fd94c9ff29385224babbcc3"
     },
     {
+      "path": ".claude/skills/frontend-design/LICENSE.txt",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    },
+    {
+      "path": ".claude/skills/frontend-design/SKILL.md",
+      "sha256": "7b1231c19c95852c8f0d809cc17b31d2bbd395bf8291d0c7f7c31a79b448af82"
+    },
+    {
+      "path": ".claude/skills/gen-image/SKILL.md",
+      "sha256": "59cd5c99e1ae38a17ab931ca0180db063145a21c17a1bd5d0e60e7dfdc3f9434"
+    },
+    {
+      "path": ".claude/skills/gen-image/gen.py",
+      "sha256": "a9fa88b601bf2fafd1c6138c4a66d01bb8f853fc7c14ad6fc2dfe245e6ae5d74"
+    },
+    {
       "path": ".claude/skills/git-cleanup-branch/SKILL.md",
       "sha256": "f42291b264619c57cc1337a484babcf2024ac68851bfc2921faff2a9629d293c"
     },
@@ -201,6 +217,10 @@
     {
       "path": ".claude/skills/task-loop-feature/SKILL.md",
       "sha256": "3c6d1af1eebaead16dc4f9dd7d8cd55f54301581596d42e23defea0beea5b774"
+    },
+    {
+      "path": ".claude/skills/ui-preview/SKILL.md",
+      "sha256": "50037b3136c2b5c7c3cc25ae4731617e5039b9782408a83832faf41179830b7b"
     },
     {
       "path": ".claude/skills/update-claude/SKILL.md",
