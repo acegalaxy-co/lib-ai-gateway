@@ -12,6 +12,9 @@
 // for session_5h / weekly_7d / rate_limit. Throw ClaudeCliLimitError on hit.
 
 const { spawn } = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const { IAIAdapter } = require("../adapter-interface");
 const limitState = require("../../lib/claude-limit/state");
 const { detectClaudeLimit } = require("../../lib/claude-limit/detect");
@@ -29,6 +32,8 @@ interface AdapterCompleteRequest {
   skill?: string;               // optional; used for limit tracking
   // systemPromptCacheable ignored — Claude CLI subscription is flat-fee, no token cache benefit
   systemPromptCacheable?: boolean;
+  // Only honored in slim mode (crawler.extract/join) → appended to SLIM_SYSTEM_PROMPT.
+  systemPrompt?: string;
   // anthropic-cli extras (from policy binding):
   timeoutMs?: number;
   allowedTools?: string;        // CSV, empty = no tools
@@ -73,6 +78,34 @@ function _toCliModel(model: string): string {
 }
 
 const DEFAULT_PROVIDER = "anthropic-cli";
+
+// Slim mode (crawler.extract / crawler.join): drop Claude Code's default system prompt,
+// built-in tool defs, skills and the caller repo's CLAUDE.md/project settings.
+// Measured 2026-10-10: fixed per-request context 54.9k → 1.4k tokens; MCP
+// tools (CloakBrowser via --mcp-config + --allowedTools) still work.
+// Kill switch: AI_GATEWAY_CLI_SLIM=0. CLAUDE.md no longer loads, so the
+// default system prompt carries the safety constraints it used to provide.
+const SLIM_SYSTEM_PROMPT = [
+  "You are a browser-automation extraction agent. Use only the provided MCP browser tools.",
+  "Do NOT log in, re-authenticate, solve captchas or bypass any security/checkpoint; if access is blocked or the session is not authenticated, stop and return {\"error\":\"session_expired\",\"message\":\"...\"}.",
+  "Only extract information visible in public posts/comments/pages.",
+  "Prefer cloak_evaluate with targeted JS returning only the needed text; avoid full-page cloak_snapshot/cloak_read_page unless evaluate cannot work.",
+  "Return ONLY valid JSON as instructed by the task. No markdown, no prose.",
+].join("\n");
+
+function _slimEnabled(skill: string): boolean {
+  if (String(process.env.AI_GATEWAY_CLI_SLIM || "").trim() === "0") return false;
+  // crawler.login excluded: it waits for a manual login, which the slim
+  // "not authenticated → stop" rule would cut short.
+  return skill === "crawler.extract" || skill === "crawler.join";
+}
+
+function _slimCwd(): string {
+  // Empty dir → no CLAUDE.md / .claude/ project settings auto-discovered.
+  const dir = path.join(os.tmpdir(), "ai-gateway-cli-slim");
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 class AnthropicCLIAdapter extends IAIAdapter {
   private readonly _provider: string;
@@ -121,7 +154,17 @@ class AnthropicCLIAdapter extends IAIAdapter {
       if (modelArg) argv.push("--model", modelArg);
       if (allowedTools) argv.push("--allowedTools", allowedTools);
       // MCP config — needed by skills that use MCP tools (crawler CloakBrowser etc.)
-      if (req.mcpConfigPath) argv.push("--mcp-config", req.mcpConfigPath);
+      if (req.mcpConfigPath) argv.push("--mcp-config", path.resolve(req.mcpConfigPath));
+      const slim = _slimEnabled(skill);
+      if (slim) {
+        const sys = String(req.systemPrompt || "").trim();
+        argv.push(
+          "--system-prompt", sys ? `${SLIM_SYSTEM_PROMPT}\n\n${sys}` : SLIM_SYSTEM_PROMPT,
+          "--tools", "",
+          "--disable-slash-commands",
+          "--strict-mcp-config",
+        );
+      }
       argv.push("-p", cleanPrompt);
 
       // Endpoint switch (2026-07-10): pass resolved baseUrl into the child's
@@ -134,6 +177,7 @@ class AnthropicCLIAdapter extends IAIAdapter {
       // surviving and keeping the browser profile locked.
       const child = spawn(cmd, argv, {
         detached: true,
+        ...(slim ? { cwd: _slimCwd() } : {}),
         stdio: ["ignore", "pipe", "pipe"],
         env: { ...process.env, ANTHROPIC_BASE_URL: String(req.baseUrl || "").trim() },
       });

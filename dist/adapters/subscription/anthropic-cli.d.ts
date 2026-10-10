@@ -6,6 +6,7 @@ interface AdapterCompleteRequest {
     schema?: Record<string, unknown> | null;
     skill?: string;
     systemPromptCacheable?: boolean;
+    systemPrompt?: string;
     timeoutMs?: number;
     allowedTools?: string;
     mcpConfigPath?: string;

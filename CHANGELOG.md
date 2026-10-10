@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `anthropic-cli` slim mode for skills `crawler.extract` / `crawler.join`:
+  `--system-prompt` (built-in safety rules + caller `systemPrompt`),
+  `--tools ""`, `--disable-slash-commands`, `--strict-mcp-config`, spawn in an
+  empty tmp cwd (no caller CLAUDE.md/project settings). Fixed per-request
+  context measured 54.9k → 1.4k tokens; MCP tools still work. `--mcp-config`
+  path is now resolved absolute. Kill switch: `AI_GATEWAY_CLI_SLIM=0`.
+
 ## [1.5.0]
 
 ### Added

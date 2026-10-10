@@ -20,6 +20,7 @@ function _makeStub(stdoutChunks, stderrChunks, exitCode = 0, signal = null, capt
     if (captureArgv) {
       captureArgv.cmd = cmd;
       captureArgv.argv = argv;
+      captureArgv.opts = _opts;
     }
     const child = new EventEmitter();
     child.stdout = new EventEmitter();
@@ -307,5 +308,49 @@ test("anthropic-cli: timeout kills whole process group (grandchild dies with par
     if (origBin === undefined) delete process.env.CLAUDE_CLI_BIN; else process.env.CLAUDE_CLI_BIN = origBin;
     if (origPidFile === undefined) delete process.env.PIDFILE; else process.env.PIDFILE = origPidFile;
     fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("anthropic-cli: crawler.* skill → slim flags + empty cwd + safety system prompt", async () => {
+  const captured = {};
+  const stub = _makeStub(["[]"], [], 0, null, captured);
+  await _withSpawn(stub, async () => {
+    const AnthropicCLIAdapter = _loadAdapter();
+    const r = await new AnthropicCLIAdapter().complete({
+      prompt: "extract", model: "claude-haiku-4-5", maxOutputTokens: 10,
+      skill: "crawler.extract", systemPrompt: "TASK RULES",
+      allowedTools: "mcp__CloakBrowser__cloak_launch", mcpConfigPath: "mcp.config.json",
+    });
+    assert.equal(r.text, "[]");
+    const a = captured.argv;
+    const sys = a[a.indexOf("--system-prompt") + 1];
+    assert.match(sys, /Do NOT log in/);
+    assert.match(sys, /TASK RULES$/);
+    assert.equal(a[a.indexOf("--tools") + 1], "");
+    assert.ok(a.includes("--disable-slash-commands"));
+    assert.ok(a.includes("--strict-mcp-config"));
+    assert.ok(path.isAbsolute(a[a.indexOf("--mcp-config") + 1]), "mcp path absolute (cwd changes)");
+    assert.equal(a[a.indexOf("--allowedTools") + 1], "mcp__CloakBrowser__cloak_launch");
+    assert.match(captured.opts.cwd, /ai-gateway-cli-slim$/);
+    assert.equal(a[a.length - 1], "extract");
+  });
+});
+
+test("anthropic-cli: non-crawler skill / AI_GATEWAY_CLI_SLIM=0 → no slim flags, inherited cwd", async () => {
+  for (const [skill, env] of [["research.summarize", undefined], ["crawler.login", undefined], ["crawler.extract", "0"]]) {
+    const captured = {};
+    const prev = process.env.AI_GATEWAY_CLI_SLIM;
+    if (env === undefined) delete process.env.AI_GATEWAY_CLI_SLIM; else process.env.AI_GATEWAY_CLI_SLIM = env;
+    try {
+      await _withSpawn(_makeStub(["ok"], [], 0, null, captured), async () => {
+        const AnthropicCLIAdapter = _loadAdapter();
+        await new AnthropicCLIAdapter().complete({ prompt: "x", model: "", maxOutputTokens: 1, skill });
+      });
+    } finally {
+      if (prev === undefined) delete process.env.AI_GATEWAY_CLI_SLIM; else process.env.AI_GATEWAY_CLI_SLIM = prev;
+    }
+    assert.ok(!captured.argv.includes("--system-prompt"), skill);
+    assert.ok(!captured.argv.includes("--tools"), skill);
+    assert.equal(captured.opts.cwd, undefined, skill);
   }
 });
