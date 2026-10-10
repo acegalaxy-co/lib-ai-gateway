@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.6.0]
+
 ### Changed
 
 - `anthropic-cli` slim mode for skills `crawler.extract` / `crawler.join`:
