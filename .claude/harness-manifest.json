@@ -12,7 +12,7 @@
     },
     {
       "path": ".claude/agents/delegate-codex.md",
-      "sha256": "ae4a268b6a7411b837c3769ecbbfce7279d18ff8038b5e9ec15c11aefc16fcdd"
+      "sha256": "feba73b801644441cb0ece88ac56f7e4e1fd6591db16df17d46e505f627ead52"
     },
     {
       "path": ".claude/agents/delegate-deepseek.md",
@@ -264,11 +264,11 @@
     },
     {
       "path": "scripts/delegate/_common.sh",
-      "sha256": "c0118cf6eb6bf8bfcbe2df0ccadc3a137c0687ec35b0f83183aa7bd1f43fbabb"
+      "sha256": "4ddcf14cd7f1fbb31c61cbe017e677528403f0fe7ed9182705cbb236d191b69e"
     },
     {
       "path": "scripts/delegate/doctor.sh",
-      "sha256": "40905d98b191439a5a4517437b0af56b7b0f06d4cfd896bc5def1512e4028ef3"
+      "sha256": "82b14e5eaed01b6b32b3d9b8e615a7c67f345fbb54363991e6acc627acf476da"
     },
     {
       "path": "scripts/delegate/lib/sitecustomize.py",
