@@ -64,6 +64,9 @@ function _slimEnabled(skill) {
         return false;
     // crawler.login excluded: it waits for a manual login, which the slim
     // "not authenticated → stop" rule would cut short.
+    // crawler.preflight excluded too: the slim system prompt's "session not
+    // authenticated → stop and return an error" rule contradicts a preflight,
+    // whose job is to report `expired`.
     return skill === "crawler.extract" || skill === "crawler.join";
 }
 function _slimCwd() {

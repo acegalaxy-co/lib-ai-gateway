@@ -337,7 +337,7 @@ test("anthropic-cli: crawler.* skill → slim flags + empty cwd + safety system 
 });
 
 test("anthropic-cli: non-crawler skill / AI_GATEWAY_CLI_SLIM=0 → no slim flags, inherited cwd", async () => {
-  for (const [skill, env] of [["research.summarize", undefined], ["crawler.login", undefined], ["crawler.extract", "0"]]) {
+  for (const [skill, env] of [["research.summarize", undefined], ["crawler.login", undefined], ["crawler.preflight", undefined], ["crawler.extract", "0"]]) {
     const captured = {};
     const prev = process.env.AI_GATEWAY_CLI_SLIM;
     if (env === undefined) delete process.env.AI_GATEWAY_CLI_SLIM; else process.env.AI_GATEWAY_CLI_SLIM = env;

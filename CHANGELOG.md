@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.0]
+
+### Added
+
+- Skill `crawler.preflight` (provider `anthropic-cli`, Haiku primary + Sonnet on
+  `deep`, timeout 180000 ms): read-only Facebook/Telegram session check that
+  reports `ok|expired|unknown`. Tool list is read-only
+  (`cloak_launch,new_page,navigate,wait,snapshot,read_page,evaluate,screenshot,close`);
+  no `cloak_click`/`cloak_type`/`cloak_press_key`, so it cannot touch a login
+  form. Excluded from anthropic-cli slim mode (the slim "not authenticated ->
+  stop" rule contradicts its job). Force a model via
+  `NEXUS_AI_GATEWAY_MODEL_CRAWLER_PREFLIGHT`.
+
+### Changed
+
+- `crawler.join` allowedTools extended with `cloak_evaluate`, `cloak_wait`,
+  `cloak_scroll`, `cloak_press_key`, `cloak_screenshot` (what join checks
+  actually use in production); `cloak_type` deliberately not added. Additive:
+  no other skill changed.
+
 ## [1.6.0]
 
 ### Changed
