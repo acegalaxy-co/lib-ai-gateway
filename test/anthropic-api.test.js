@@ -107,7 +107,7 @@ test("anthropic-api: fallback env works when apiKeyEnv is absent", async () => {
     _clearAdapterCache();
 
     process.env.ANTHROPIC_API_KEY = "fallback-key";
-    delete process.env.NEXUS_ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY_NEXUS;
     const { AnthropicAPIAdapter } = require(ADAPTER_PATH);
     const adapter = new AnthropicAPIAdapter();
     const r = await adapter.complete({
@@ -122,7 +122,7 @@ test("anthropic-api: fallback env works when apiKeyEnv is absent", async () => {
     Module.prototype.require = originalRequire;
     _clearAdapterCache();
     delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.NEXUS_ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY_NEXUS;
   }
 });
 
@@ -134,7 +134,7 @@ test("anthropic-api: missing fallback env throws clear env error", async () => {
     _clearAdapterCache();
 
     delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.NEXUS_ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY_NEXUS;
     const { AnthropicAPIAdapter } = require(ADAPTER_PATH);
     const adapter = new AnthropicAPIAdapter();
 
@@ -144,13 +144,13 @@ test("anthropic-api: missing fallback env throws clear env error", async () => {
         model: "claude-test",
         maxOutputTokens: 100,
       }),
-      /Expected environment variable: ANTHROPIC_API_KEY or NEXUS_ANTHROPIC_API_KEY/
+      /Expected environment variable: ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_NEXUS/
     );
   } finally {
     Module.prototype.require = originalRequire;
     _clearAdapterCache();
     delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.NEXUS_ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY_NEXUS;
   }
 });
 

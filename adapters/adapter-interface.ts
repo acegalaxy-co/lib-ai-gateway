@@ -44,7 +44,7 @@ interface AdapterCompleteRequest {
   // Endpoint override (per-vendor LLM endpoint switch, 2026-07-10). Empty/unset
   // → adapter's own direct/default endpoint. Non-empty → route through this
   // base URL (e.g. 9router proxy). Resolved by authz/engine.ts from
-  // NEXUS_<VENDOR>_BASE_URL. See .claude/rules/system-ai-gateway.md.
+  // <VENDOR>_BASE_URL_NEXUS. See .claude/rules/system-ai-gateway.md.
   baseUrl?: string;
 }
 

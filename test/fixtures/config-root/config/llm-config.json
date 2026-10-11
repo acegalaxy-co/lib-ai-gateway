@@ -4,7 +4,7 @@
     "sonnet_api": {
       "id": "claude-sonnet-4-6",
       "provider": "anthropic",
-      "apiKeyEnv": "NEXUS_ANTHROPIC_API_KEY",
+      "apiKeyEnv": "ANTHROPIC_API_KEY_NEXUS",
       "active": true,
       "type": "API Key"
     },
@@ -17,7 +17,7 @@
     "haiku_api": {
       "id": "claude-haiku-4-5-20251001",
       "provider": "anthropic",
-      "apiKeyEnv": "NEXUS_ANTHROPIC_API_KEY",
+      "apiKeyEnv": "ANTHROPIC_API_KEY_NEXUS",
       "active": true,
       "type": "API Key"
     },
@@ -31,7 +31,7 @@
       "id": "gemini-2.5-flash",
       "provider": "openai-compat",
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
-      "apiKeyEnv": "NEXUS_GEMINI_API_KEY",
+      "apiKeyEnv": "TEST_GEMINI_API_KEY",
       "active": true,
       "type": "API Key"
     },
@@ -45,7 +45,7 @@
       "id": "deepseek-v4-pro",
       "provider": "deepseek-api",
       "baseUrl": "https://api.deepseek.com/v1",
-      "apiKeyEnv": "NEXUS_DEEPSEEK_API_KEY",
+      "apiKeyEnv": "DEEPSEEK_API_KEY_NEXUS",
       "active": true,
       "type": "API Key"
     },
@@ -53,7 +53,7 @@
       "id": "gpt-5.5",
       "provider": "openai-compat",
       "baseUrl": "https://proxy.example.com/v1",
-      "apiKeyEnv": "NEXUS_CODEX_API_KEY",
+      "apiKeyEnv": "TEST_CODEX_API_KEY",
       "active": true,
       "type": "API Key"
     }

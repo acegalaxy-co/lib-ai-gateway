@@ -40,7 +40,7 @@ interface AdapterCompleteRequest {
   // MCP server config — loads mcpServers definition for tool_use.
   // Used by crawler (CloakBrowser) + any skill needing MCP tools.
   mcpConfigPath?: string;
-  // Endpoint override (resolved by authz/engine.ts from NEXUS_CLAUDE_BASE_URL,
+  // Endpoint override (resolved by authz/engine.ts from ANTHROPIC_BASE_URL_NEXUS,
   // 2026-07-10). Empty/unset → CLI falls back to its own default (direct API).
   baseUrl?: string;
 }
@@ -172,7 +172,7 @@ class AnthropicCLIAdapter extends IAIAdapter {
 
       // Endpoint switch (2026-07-10): pass resolved baseUrl into the child's
       // env explicitly rather than relying on inherited process env, so the
-      // per-vendor NEXUS_CLAUDE_BASE_URL override (or empty → direct API)
+      // per-vendor ANTHROPIC_BASE_URL_NEXUS override (or empty → direct API)
       // always wins regardless of what the parent process has set.
       // detached: true → child gets its own process group (pgid = child.pid).
       // On timeout we SIGKILL the whole group so MCP server children

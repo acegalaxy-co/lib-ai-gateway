@@ -42,10 +42,10 @@ async function alertClaudeCliLimit(
     return;
   }
 
-  const channelId = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
+  const channelId = process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
   if (!channelId) {
     console.warn(
-      "[ai-gateway][claude-limit-alert] NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT not set; skipping alert"
+      "[ai-gateway][claude-limit-alert] TELEGRAM_CHANNEL_STATUS_ALERT_ID not set; skipping alert"
     );
     return;
   }

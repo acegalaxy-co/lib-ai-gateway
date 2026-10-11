@@ -21,7 +21,7 @@ const DIST = path.join(ROOT, "dist");
 
 const ENV_KEYS = [
   "AI_GATEWAY_PROXY_CONFIG",
-  "NEXUS_CLAUDE_BASE_URL",
+  "ANTHROPIC_BASE_URL_NEXUS",
   "ANTHROPIC_BASE_URL",
   "QWEN_BASE_URL",
   "LOCAL_SERVICE_MODE",
@@ -68,13 +68,13 @@ function _writeFixture(obj) {
 }
 
 const DEFAULT_FIXTURE = {
-  proxy: { baseUrlEnv: "NEXUS_9ROUTER_BASE_URL", tokenEnv: "NEXUS_9ROUTER_TOKEN", hostPattern: "9router" },
+  proxy: { baseUrlEnv: "AI_9ROUTER_BASE_URL", tokenEnv: "AI_9ROUTER_TOKEN", hostPattern: "9router" },
   families: {
     anthropic: {
       prefix: "cc/",
       originalHosts: ["api.anthropic.com"],
       match: { providerPrefix: "anthropic", modelPrefix: "claude" },
-      baseUrlEnv: ["NEXUS_CLAUDE_BASE_URL", "ANTHROPIC_BASE_URL"],
+      baseUrlEnv: ["ANTHROPIC_BASE_URL_NEXUS", "ANTHROPIC_BASE_URL"],
       proxyEnableEnv: null,
       switchTokenOnProxyHost: false,
     },
@@ -82,16 +82,16 @@ const DEFAULT_FIXTURE = {
       prefix: "ds/",
       originalHosts: ["api.deepseek.com"],
       match: { provider: "deepseek-api", modelPrefix: "deepseek" },
-      baseUrlEnv: ["NEXUS_DEEPSEEK_BASE_URL"],
-      proxyEnableEnv: "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
+      baseUrlEnv: ["DEEPSEEK_BASE_URL_NEXUS"],
+      proxyEnableEnv: "AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
       switchTokenOnProxyHost: true,
     },
     codex: {
       prefix: "cx/",
       originalHosts: ["api.openai.com"],
       match: { provider: "codex-cli" },
-      baseUrlEnv: ["NEXUS_CODEX_BASE_URL"],
-      proxyEnableEnv: "NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
+      baseUrlEnv: ["OPENAI_CODEX_BASE_URL"],
+      proxyEnableEnv: "AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
       switchTokenOnProxyHost: false,
     },
     qwen: {
@@ -133,12 +133,12 @@ test("2. .env override resolves per-family baseUrlEnv from fixture config", () =
   _clean();
   const fixturePath = _writeFixture(DEFAULT_FIXTURE);
   process.env.AI_GATEWAY_PROXY_CONFIG = fixturePath;
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.example.com/v1";
+  process.env.ANTHROPIC_BASE_URL_NEXUS = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride, _resetConfigCache } = _loadProxyOverride();
     _resetConfigCache();
     const r = applyProxyOverride({ provider: "anthropic-cli", model: "claude-sonnet-4-6" });
-    assert.equal(r.baseUrl, "https://9router.example.com/v1", "baseUrl must be overridden by NEXUS_CLAUDE_BASE_URL");
+    assert.equal(r.baseUrl, "https://9router.example.com/v1", "baseUrl must be overridden by ANTHROPIC_BASE_URL_NEXUS");
     assert.equal(r.model, "cc/claude-sonnet-4-6");
   } finally {
     fs.unlinkSync(fixturePath);

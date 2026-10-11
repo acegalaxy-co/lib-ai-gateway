@@ -57,7 +57,7 @@ const REMAP_ENV = "AI_GATEWAY_REMAP_ANTHROPIC_API";
 // anthropic-api model id this test asserts (see dispatch.test.js _forceProd
 // for the same guard on the same fixture skill/tier).
 function _forceProd() {
-  const keys = ["ANTHROPIC_BASE_URL", "NEXUS_CLAUDE_BASE_URL", "LOCAL_SERVICE_MODE"];
+  const keys = ["ANTHROPIC_BASE_URL", "ANTHROPIC_BASE_URL_NEXUS", "LOCAL_SERVICE_MODE"];
   const snap = {};
   for (const k of keys) {
     snap[k] = process.env[k];
@@ -83,9 +83,9 @@ function _restoreEnv(keys) {
 }
 
 test("remap happy path: anthropic-api -> openai-compat registry row, adapter gets row's model/baseUrl/apiKeyEnv, outcome.remappedFrom set", async () => {
-  const restoreEnv = _restoreEnv([REMAP_ENV, "NEXUS_CODEX_API_KEY"]);
+  const restoreEnv = _restoreEnv([REMAP_ENV, "TEST_CODEX_API_KEY"]);
   process.env[REMAP_ENV] = "codex_api";
-  process.env.NEXUS_CODEX_API_KEY = "test-codex-key";
+  process.env.TEST_CODEX_API_KEY = "test-codex-key";
 
   let observed = null;
   const restoreFetch = _mockFetch(async (url, opts) => {
@@ -119,16 +119,16 @@ test("remap happy path: anthropic-api -> openai-compat registry row, adapter get
 test("remap to deepseek row goes through proxy-override (9router prefix + token swap)", async () => {
   const restoreEnv = _restoreEnv([
     REMAP_ENV,
-    "NEXUS_DEEPSEEK_API_KEY",
-    "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
-    "NEXUS_9ROUTER_BASE_URL",
-    "NEXUS_9ROUTER_TOKEN",
+    "DEEPSEEK_API_KEY_NEXUS",
+    "AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
+    "AI_9ROUTER_BASE_URL",
+    "AI_9ROUTER_TOKEN",
   ]);
   process.env[REMAP_ENV] = "deepseek_api";
-  process.env.NEXUS_DEEPSEEK_API_KEY = "unused-direct-key";
-  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-proxy-token";
+  process.env.DEEPSEEK_API_KEY_NEXUS = "unused-direct-key";
+  process.env.AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
+  process.env.AI_9ROUTER_BASE_URL = "https://9router.example.com/v1";
+  process.env.AI_9ROUTER_TOKEN = "test-proxy-token";
 
   let observed = null;
   // DeepSeekAdapter's non-streaming success path reads resp.text() (not
@@ -195,9 +195,9 @@ test("unknown remap modelKey -> L2_remap_invalid (no silent fallback to original
 });
 
 test("remap also applies on the modelOverride path", async () => {
-  const restoreEnv = _restoreEnv([REMAP_ENV, "NEXUS_CODEX_API_KEY"]);
+  const restoreEnv = _restoreEnv([REMAP_ENV, "TEST_CODEX_API_KEY"]);
   process.env[REMAP_ENV] = "codex_api";
-  process.env.NEXUS_CODEX_API_KEY = "test-codex-key-2";
+  process.env.TEST_CODEX_API_KEY = "test-codex-key-2";
 
   const restoreFetch = _mockFetch(async () => ({
     ok: true,

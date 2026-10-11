@@ -120,7 +120,7 @@ test("limit isolation: antigravity limit hit does not affect Claude skill key; e
 test("dispatchCall: open anthropic-cli breaker does not deny antigravity-cli", async () => {
   const cap = {};
   const saved = {};
-  for (const k of ["ANTHROPIC_BASE_URL", "NEXUS_CLAUDE_BASE_URL", "LOCAL_SERVICE_MODE"]) { saved[k] = process.env[k]; delete process.env[k]; }
+  for (const k of ["ANTHROPIC_BASE_URL", "ANTHROPIC_BASE_URL_NEXUS", "LOCAL_SERVICE_MODE"]) { saved[k] = process.env[k]; delete process.env[k]; }
   cpModule.spawn = _stub(cap);
   try {
     _resetModules();
@@ -146,7 +146,7 @@ test("dispatchCall: open anthropic-cli breaker does not deny antigravity-cli", a
 });
 
 test("proxy-override: antigravity-cli + antigravity/* model untouched (even with 9router env)", () => {
-  const keys = ["ANTHROPIC_BASE_URL", "NEXUS_CLAUDE_BASE_URL"];
+  const keys = ["ANTHROPIC_BASE_URL", "ANTHROPIC_BASE_URL_NEXUS"];
   const snap = {};
   for (const k of keys) snap[k] = process.env[k];
   try {

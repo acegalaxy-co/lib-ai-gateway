@@ -60,8 +60,8 @@ function _nowIso() {
  * Resolve runtime model override from env vars.
  *
  * Priority (high → low):
- *   1. NEXUS_AI_GATEWAY_MODEL_<SKILL_UPPER> (dots + dashes → underscores)
- *   2. NEXUS_AI_GATEWAY_MODEL_DEFAULT
+ *   1. AI_GATEWAY_MODEL_<SKILL_UPPER> (dots + dashes → underscores)
+ *   2. AI_GATEWAY_MODEL_DEFAULT
  *
  * Only applies to Anthropic providers (`anthropic-api`, `anthropic-cli`) —
  * cross-provider swap needs baseUrl/apiKeyEnv, which env vars cannot carry
@@ -70,10 +70,10 @@ function _nowIso() {
  * Returns null if no override or provider not Anthropic.
  *
  * Example — bind Haiku to crawler.extract for one run:
- *   NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-haiku-4-5 npm run start
+ *   AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-haiku-4-5 npm run start
  *
  * Bind Haiku to all Anthropic skills:
- *   NEXUS_AI_GATEWAY_MODEL_DEFAULT=claude-haiku-4-5
+ *   AI_GATEWAY_MODEL_DEFAULT=claude-haiku-4-5
  */
 /**
  * Resolve a provider-wide remap target from env.
@@ -100,11 +100,11 @@ function _resolveRemapEnv(provider) {
 function _resolveEnvModelOverride(skill, provider) {
     if (provider !== "anthropic-api" && provider !== "anthropic-cli")
         return null;
-    const skillEnvKey = "NEXUS_AI_GATEWAY_MODEL_" + String(skill).toUpperCase().replace(/[.\-]/g, "_");
+    const skillEnvKey = "AI_GATEWAY_MODEL_" + String(skill).toUpperCase().replace(/[.\-]/g, "_");
     const skillModel = (process.env[skillEnvKey] || "").trim();
     if (skillModel)
         return skillModel;
-    const defaultModel = (process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT || "").trim();
+    const defaultModel = (process.env.AI_GATEWAY_MODEL_DEFAULT || "").trim();
     return defaultModel || null;
 }
 async function dispatchCall(req) {
@@ -164,9 +164,9 @@ async function dispatchCall(req) {
             // Env-based model override (Anthropic providers only — swapping across
             // providers requires baseUrl/apiKeyEnv which env vars can't reliably
             // carry). Priority: skill-specific > default. Provider/baseUrl/quota
-            // stay per-policy. Set NEXUS_AI_GATEWAY_MODEL_<SKILL_UPPER_UNDERSCORE>
-            // for one skill (e.g. NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT) or
-            // NEXUS_AI_GATEWAY_MODEL_DEFAULT for all Anthropic skills.
+            // stay per-policy. Set AI_GATEWAY_MODEL_<SKILL_UPPER_UNDERSCORE>
+            // for one skill (e.g. AI_GATEWAY_MODEL_CRAWLER_EXTRACT) or
+            // AI_GATEWAY_MODEL_DEFAULT for all Anthropic skills.
             const envModel = _resolveEnvModelOverride(req.skill, authzResult.provider);
             if (envModel)
                 authzResult.model = envModel;

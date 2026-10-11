@@ -30,7 +30,7 @@ function _resetModules() {
 // that assert a bare model id must run against a PROD endpoint. Returns a
 // restore fn. Mirrors the inline pattern already used at lines 43-44 / 234-238.
 function _forceProd() {
-  const keys = ["ANTHROPIC_BASE_URL", "NEXUS_CLAUDE_BASE_URL", "LOCAL_SERVICE_MODE"];
+  const keys = ["ANTHROPIC_BASE_URL", "ANTHROPIC_BASE_URL_NEXUS", "LOCAL_SERVICE_MODE"];
   const snap = {};
   for (const k of keys) {
     snap[k] = process.env[k];
@@ -117,7 +117,7 @@ test("L2 fallback: unknown skill resolves via '*' policy, provider+model set on 
   // Adapter will fail because no key for the bound deepseek-api provider —
   // we expect L1_provider_unavailable, but provider+model must be populated
   // from the '*' fallback policy before the adapter is called.
-  delete process.env.NEXUS_DEEPSEEK_API_KEY;
+  delete process.env.DEEPSEEK_API_KEY_NEXUS;
   const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
   assert.equal(r.outcome, "deny");
   assert.equal(r.denyReason, "L1_provider_unavailable");
@@ -130,7 +130,7 @@ test("L2 fallback: unknown skill resolves via '*' policy, provider+model set on 
 test("L4_circuit_open: trips after N failures, blocks next call", async () => {
   const { gw, breaker } = _load();
   // Force 5 failures on the provider bound to '*' balanced (deepseek-api).
-  delete process.env.NEXUS_DEEPSEEK_API_KEY;
+  delete process.env.DEEPSEEK_API_KEY_NEXUS;
   for (let i = 0; i < 5; i += 1) {
     await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
   }
@@ -148,7 +148,7 @@ test("L3_budget_exhausted: reserve fails when over quota", async () => {
   await budget.reserve("burn.skill", 1999000, 2000000);
   // Adapter would fail (no key) but budget should reject first.
   delete process.env.ANTHROPIC_API_KEY;
-  delete process.env.NEXUS_ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_API_KEY_NEXUS;
   // Prompt long enough that estimated tokens > remaining quota.
   const bigPrompt = "x".repeat(10000);
   const r = await gw.dispatchCall({ skill: "burn.skill", tier: "balanced", prompt: bigPrompt });
@@ -176,16 +176,16 @@ test("audit log writes one JSONL line per call (allow OR deny)", async () => {
 
 // ============================================================
 // 2026-07-07: Env-based runtime model override (Anthropic providers only).
-// Priority: NEXUS_AI_GATEWAY_MODEL_<SKILL> > NEXUS_AI_GATEWAY_MODEL_DEFAULT > policy.
+// Priority: AI_GATEWAY_MODEL_<SKILL> > AI_GATEWAY_MODEL_DEFAULT > policy.
 // Applied inside dispatchCall between authz and adapter — we can observe the
 // resolved model in the response's `.model` field (populated pre-adapter).
 // ============================================================
-test("env override: NEXUS_AI_GATEWAY_MODEL_<SKILL> replaces policy model", async () => {
+test("env override: AI_GATEWAY_MODEL_<SKILL> replaces policy model", async () => {
   const restore = _forceProd();
   const { gw } = _load();
   // crawler.extract policy binds anthropic-cli / claude-haiku-4-5. Override
   // via skill-specific env — expect resolved model in response.
-  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
+  process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
   try {
     // Adapter will fail (no real CLI in test env) → L1_provider_unavailable
     // OR L3 depending on quota. But r.model is set BEFORE adapter call.
@@ -193,20 +193,20 @@ test("env override: NEXUS_AI_GATEWAY_MODEL_<SKILL> replaces policy model", async
     assert.equal(r.model, "claude-sonnet-4-6", "env override wins over policy claude-haiku-4-5");
     assert.equal(r.provider, "anthropic-cli", "provider stays per policy");
   } finally {
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    delete process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
     restore();
   }
 });
 
-test("env override: NEXUS_AI_GATEWAY_MODEL_DEFAULT applies when skill-specific unset", async () => {
+test("env override: AI_GATEWAY_MODEL_DEFAULT applies when skill-specific unset", async () => {
   const restore = _forceProd();
   const { gw } = _load();
-  process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
+  process.env.AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
   try {
     const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
     assert.equal(r.model, "claude-opus-4-7", "DEFAULT override applies");
   } finally {
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
+    delete process.env.AI_GATEWAY_MODEL_DEFAULT;
     restore();
   }
 });
@@ -214,14 +214,14 @@ test("env override: NEXUS_AI_GATEWAY_MODEL_DEFAULT applies when skill-specific u
 test("env override: skill-specific wins over DEFAULT", async () => {
   const restore = _forceProd();
   const { gw } = _load();
-  process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
-  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-haiku-4-5";
+  process.env.AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
+  process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-haiku-4-5";
   try {
     const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
     assert.equal(r.model, "claude-haiku-4-5", "skill-specific wins over DEFAULT");
   } finally {
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    delete process.env.AI_GATEWAY_MODEL_DEFAULT;
+    delete process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
     restore();
   }
 });
@@ -230,20 +230,20 @@ test("env override: does NOT apply to non-Anthropic providers", async () => {
   const { gw } = _load();
   // '*' fallback policy binds deepseek-api / deepseek-v4-pro for balanced.
   // Env override must NOT touch this (would break baseUrl/apiKeyEnv contract).
-  process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
+  process.env.AI_GATEWAY_MODEL_DEFAULT = "claude-opus-4-7";
   try {
     const r = await gw.dispatchCall({ skill: "unknown.skill", tier: "balanced", prompt: "x" });
     assert.equal(r.model, "deepseek-v4-pro", "policy model preserved for non-Anthropic provider");
     assert.equal(r.provider, "deepseek-api");
   } finally {
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_DEFAULT;
+    delete process.env.AI_GATEWAY_MODEL_DEFAULT;
   }
 });
 
 test("env override: modelOverride param still wins over env vars", async () => {
   const restore = _forceProd();
   const { gw } = _load();
-  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
+  process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "claude-sonnet-4-6";
   try {
     const r = await gw.dispatchCall({
       skill: "crawler.extract",
@@ -256,7 +256,7 @@ test("env override: modelOverride param still wins over env vars", async () => {
     });
     assert.equal(r.model, "claude-opus-4-7", "modelOverride param has highest priority");
   } finally {
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    delete process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
     restore();
   }
 });
@@ -267,14 +267,14 @@ test("env override: empty string ignored (falls back to policy)", async () => {
   const _prevBase = process.env.ANTHROPIC_BASE_URL;
   delete process.env.ANTHROPIC_BASE_URL;
   const { gw } = _load();
-  process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "   ";
+  process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT = "   ";
   try {
     const r = await gw.dispatchCall({ skill: "crawler.extract", tier: "balanced", prompt: "x" });
     // 2026-07-09: crawler.extract now uses modelKey='haiku' → resolves to
     // Notion registry id 'claude-haiku-4-5-20251001' (dated suffix).
     assert.equal(r.model, "claude-haiku-4-5-20251001", "whitespace-only env ignored, policy default wins");
   } finally {
-    delete process.env.NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
+    delete process.env.AI_GATEWAY_MODEL_CRAWLER_EXTRACT;
     if (_prevBase === undefined) delete process.env.ANTHROPIC_BASE_URL;
     else process.env.ANTHROPIC_BASE_URL = _prevBase;
   }
@@ -312,7 +312,7 @@ test("authz modelKey routing: sonnet_api uses anthropic-api api-key route", asyn
   assert.equal(result.allow, true);
   assert.equal(result.provider, "anthropic-api");
   assert.equal(result.model, "claude-sonnet-4-6");
-  assert.equal(result.apiKeyEnv, "NEXUS_ANTHROPIC_API_KEY");
+  assert.equal(result.apiKeyEnv, "ANTHROPIC_API_KEY_NEXUS");
 });
 
 test("authz modelKey routing: deepseek_api uses dedicated deepseek-api route", async () => {
@@ -321,7 +321,7 @@ test("authz modelKey routing: deepseek_api uses dedicated deepseek-api route", a
   assert.equal(result.provider, "deepseek-api");
   assert.equal(result.model, "deepseek-v4-pro");
   assert.equal(result.baseUrl, "https://api.deepseek.com/v1");
-  assert.equal(result.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY");
+  assert.equal(result.apiKeyEnv, "DEEPSEEK_API_KEY_NEXUS");
 });
 
 // ============================================================

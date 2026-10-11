@@ -7,8 +7,8 @@
 // prefix normalization moved OUT of authz/engine.ts into a single shared
 // layer lib/proxy-override/ (see test/proxy-override.test.js for isolated
 // unit coverage of that function). engine.check() no longer reads
-// NEXUS_CLAUDE_BASE_URL / NEXUS_DEEPSEEK_BASE_URL / NEXUS_CODEX_BASE_URL /
-// NEXUS_9ROUTER_* itself — it only resolves registry/binding provider+model
+// ANTHROPIC_BASE_URL_NEXUS / DEEPSEEK_BASE_URL_NEXUS / OPENAI_CODEX_BASE_URL /
+// AI_9ROUTER_* itself — it only resolves registry/binding provider+model
 // +baseUrl+apiKeyEnv.
 //
 // This file now keeps:
@@ -33,13 +33,13 @@ const ANTHROPIC_SKILL = "invoice-enrich.classify";
 const ANTHROPIC_TIER = "balanced";
 
 const VENDOR_ENV_KEYS = [
-  "NEXUS_CLAUDE_BASE_URL",
-  "NEXUS_CODEX_BASE_URL",
-  "NEXUS_DEEPSEEK_BASE_URL",
-  "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
-  "NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
-  "NEXUS_9ROUTER_BASE_URL",
-  "NEXUS_9ROUTER_TOKEN",
+  "ANTHROPIC_BASE_URL_NEXUS",
+  "OPENAI_CODEX_BASE_URL",
+  "DEEPSEEK_BASE_URL_NEXUS",
+  "AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
+  "AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
+  "AI_9ROUTER_BASE_URL",
+  "AI_9ROUTER_TOKEN",
   "ANTHROPIC_BASE_URL",
   "LOCAL_SERVICE_MODE",
 ];
@@ -126,7 +126,7 @@ test("engine.check() (no proxy env): deepseek_api modelKey resolves registry bas
     assert.equal(r.allow, true, `expected allow, got: ${r.reason}`);
     assert.equal(r.provider, "deepseek-api");
     assert.equal(r.baseUrl, "https://api.deepseek.com/v1", "registry baseUrl preserved");
-    assert.equal(r.apiKeyEnv, "NEXUS_DEEPSEEK_API_KEY", "registry apiKeyEnv preserved");
+    assert.equal(r.apiKeyEnv, "DEEPSEEK_API_KEY_NEXUS", "registry apiKeyEnv preserved");
     assert.ok(!r.model.startsWith("ds/"), `expected bare model id, got="${r.model}"`);
   } finally {
     _restoreEnv(snap);
@@ -148,10 +148,10 @@ test("engine.check() (no proxy env): codex_cli modelKey resolves bare model id",
 
 // --- (b) composed pipeline: engine.check() piped through applyProxyOverride
 
-test("composed pipeline: NEXUS_CLAUDE_BASE_URL=9router → engine.check()+applyProxyOverride yields cc/ prefix + baseUrl", async () => {
+test("composed pipeline: ANTHROPIC_BASE_URL_NEXUS=9router → engine.check()+applyProxyOverride yields cc/ prefix + baseUrl", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CLAUDE_BASE_URL = "https://9router.example.com/v1";
+  process.env.ANTHROPIC_BASE_URL_NEXUS = "https://9router.example.com/v1";
   try {
     const authz = _loadEngine();
     const bound = await authz.check(ANTHROPIC_SKILL, ANTHROPIC_TIER);
@@ -170,12 +170,12 @@ test("composed pipeline: NEXUS_CLAUDE_BASE_URL=9router → engine.check()+applyP
   }
 });
 
-test("composed pipeline: NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.check()+applyProxyOverride yields ds/ prefix + 9router baseUrl + token", async () => {
+test("composed pipeline: AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.check()+applyProxyOverride yields ds/ prefix + 9router baseUrl + token", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
+  process.env.AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
+  process.env.AI_9ROUTER_BASE_URL = "https://9router.example.com/v1";
+  process.env.AI_9ROUTER_TOKEN = "test-9router-token";
   try {
     const bound = await _checkModelKeyRouting("deepseek_api");
     assert.equal(bound.allow, true, `expected allow, got: ${bound.reason}`);
@@ -186,7 +186,7 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.
       baseUrl: bound.baseUrl,
       apiKeyEnv: bound.apiKeyEnv,
     });
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
+    assert.equal(r.apiKeyEnv, "AI_9ROUTER_TOKEN");
     assert.ok(r.baseUrl.includes("9router"), `expected 9router baseUrl, got="${r.baseUrl}"`);
     assert.ok(r.model.startsWith("ds/"), `expected ds/ prefix, got model="${r.model}"`);
   } finally {
@@ -194,12 +194,12 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 → engine.
   }
 });
 
-test("composed pipeline: NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.check()+applyProxyOverride yields cx/ prefix + 9router baseUrl + token", async () => {
+test("composed pipeline: AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.check()+applyProxyOverride yields cx/ prefix + 9router baseUrl + token", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
+  process.env.AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
+  process.env.AI_9ROUTER_BASE_URL = "https://9router.example.com/v1";
+  process.env.AI_9ROUTER_TOKEN = "test-9router-token";
   try {
     const bound = await _checkModelKeyRouting("codex_cli");
     assert.equal(bound.allow, true, `expected allow, got: ${bound.reason}`);
@@ -210,7 +210,7 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.ch
       baseUrl: bound.baseUrl,
       apiKeyEnv: bound.apiKeyEnv,
     });
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
+    assert.equal(r.apiKeyEnv, "AI_9ROUTER_TOKEN");
     assert.ok(r.baseUrl.includes("9router"), `expected 9router baseUrl, got="${r.baseUrl}"`);
     assert.ok(r.model.startsWith("cx/"), `expected cx/ prefix, got model="${r.model}"`);
   } finally {
@@ -218,7 +218,7 @@ test("composed pipeline: NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 → engine.ch
   }
 });
 
-test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (NEXUS_CLAUDE unset) still gets cc/ prefix", async () => {
+test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (ANTHROPIC_BASE_URL_NEXUS unset) still gets cc/ prefix", async () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
   process.env.ANTHROPIC_BASE_URL = "https://9router.example.com/v1";
@@ -242,10 +242,10 @@ test("composed pipeline backward-compat: legacy ANTHROPIC_BASE_URL (NEXUS_CLAUDE
 
 // --- (c) priority-order regression guards (flag wins over URL override) ---
 
-test("priority-order: NEXUS_CODEX_BASE_URL set (no flag) gets cx/ prefix + baseUrl carried, apiKeyEnv untouched", () => {
+test("priority-order: OPENAI_CODEX_BASE_URL set (no flag) gets cx/ prefix + baseUrl carried, apiKeyEnv untouched", () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_CODEX_BASE_URL = "https://9router.example.com/v1";
+  process.env.OPENAI_CODEX_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride } = _loadProxyOverride();
     const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });
@@ -257,39 +257,39 @@ test("priority-order: NEXUS_CODEX_BASE_URL set (no flag) gets cx/ prefix + baseU
   }
 });
 
-test("priority-order: deepseek NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 wins over NEXUS_DEEPSEEK_BASE_URL when both set", () => {
+test("priority-order: deepseek AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE=1 wins over DEEPSEEK_BASE_URL_NEXUS when both set", () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  process.env.NEXUS_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
+  process.env.AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE = "1";
+  process.env.AI_9ROUTER_BASE_URL = "https://9router.example.com/v1";
+  process.env.AI_9ROUTER_TOKEN = "test-9router-token";
+  process.env.DEEPSEEK_BASE_URL_NEXUS = "https://api.deepseek.com/v1";
   try {
     const { applyProxyOverride } = _loadProxyOverride();
     const r = applyProxyOverride({
       provider: "deepseek-api",
       model: "deepseek-v4-pro",
       baseUrl: "https://api.deepseek.com/v1",
-      apiKeyEnv: "NEXUS_DEEPSEEK_API_KEY",
+      apiKeyEnv: "DEEPSEEK_API_KEY_NEXUS",
     });
-    assert.equal(r.apiKeyEnv, "NEXUS_9ROUTER_TOKEN");
-    assert.equal(r.baseUrl, process.env.NEXUS_9ROUTER_BASE_URL, "flag must win over NEXUS_DEEPSEEK_BASE_URL");
+    assert.equal(r.apiKeyEnv, "AI_9ROUTER_TOKEN");
+    assert.equal(r.baseUrl, process.env.AI_9ROUTER_BASE_URL, "flag must win over DEEPSEEK_BASE_URL_NEXUS");
   } finally {
     _restoreEnv(snap);
   }
 });
 
-test("priority-order: codex NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 wins over NEXUS_CODEX_BASE_URL when both set", () => {
+test("priority-order: codex AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE=1 wins over OPENAI_CODEX_BASE_URL when both set", () => {
   const snap = _snapshotEnv();
   for (const k of VENDOR_ENV_KEYS) delete process.env[k];
-  process.env.NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
-  process.env.NEXUS_9ROUTER_BASE_URL = "https://9router.example.com/v1";
-  process.env.NEXUS_9ROUTER_TOKEN = "test-9router-token";
-  process.env.NEXUS_CODEX_BASE_URL = "https://9router.example.com/v1";
+  process.env.AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE = "1";
+  process.env.AI_9ROUTER_BASE_URL = "https://9router.example.com/v1";
+  process.env.AI_9ROUTER_TOKEN = "test-9router-token";
+  process.env.OPENAI_CODEX_BASE_URL = "https://9router.example.com/v1";
   try {
     const { applyProxyOverride } = _loadProxyOverride();
     const r = applyProxyOverride({ provider: "codex-cli", model: "gpt-5.5" });
-    assert.equal(r.baseUrl, process.env.NEXUS_9ROUTER_BASE_URL, "flag must win over NEXUS_CODEX_BASE_URL");
+    assert.equal(r.baseUrl, process.env.AI_9ROUTER_BASE_URL, "flag must win over OPENAI_CODEX_BASE_URL");
     assert.ok(r.model.startsWith("cx/"), `expected cx/ prefix, got model="${r.model}"`);
   } finally {
     _restoreEnv(snap);

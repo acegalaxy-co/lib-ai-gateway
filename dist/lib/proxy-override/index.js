@@ -23,13 +23,13 @@ const fs = require("fs");
 // Defaults mirror the config/proxy.json committed alongside this file —
 // used only when the file is missing/unreadable/malformed at runtime.
 const DEFAULT_CONFIG = {
-    proxy: { baseUrlEnv: "NEXUS_9ROUTER_BASE_URL", tokenEnv: "NEXUS_9ROUTER_TOKEN", hostPattern: "9router" },
+    proxy: { baseUrlEnv: "AI_9ROUTER_BASE_URL", tokenEnv: "AI_9ROUTER_TOKEN", hostPattern: "9router" },
     families: {
         anthropic: {
             prefix: "cc/",
             originalHosts: ["api.anthropic.com"],
             match: { providerPrefix: "anthropic", modelPrefix: "claude" },
-            baseUrlEnv: ["NEXUS_CLAUDE_BASE_URL", "ANTHROPIC_BASE_URL"],
+            baseUrlEnv: ["ANTHROPIC_BASE_URL_NEXUS", "ANTHROPIC_BASE_URL"],
             proxyEnableEnv: null,
             switchTokenOnProxyHost: false,
         },
@@ -37,16 +37,16 @@ const DEFAULT_CONFIG = {
             prefix: "ds/",
             originalHosts: ["api.deepseek.com"],
             match: { provider: "deepseek-api", modelPrefix: "deepseek" },
-            baseUrlEnv: ["NEXUS_DEEPSEEK_BASE_URL"],
-            proxyEnableEnv: "NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
+            baseUrlEnv: ["DEEPSEEK_BASE_URL_NEXUS"],
+            proxyEnableEnv: "AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE",
             switchTokenOnProxyHost: true,
         },
         codex: {
             prefix: "cx/",
             originalHosts: ["api.openai.com"],
             match: { provider: "codex-cli" },
-            baseUrlEnv: ["NEXUS_CODEX_BASE_URL"],
-            proxyEnableEnv: "NEXUS_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
+            baseUrlEnv: ["OPENAI_CODEX_BASE_URL"],
+            proxyEnableEnv: "AI_9ROUTER_RUNTIME_OPENAI_CLI_ENABLE",
             switchTokenOnProxyHost: false,
         },
     },

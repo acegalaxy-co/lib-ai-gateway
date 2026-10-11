@@ -96,11 +96,11 @@ resolve a notify/telegram module. The consumer passes its own transport.
 Priority (high → low):
 
 1. `req.modelOverride` param — caller code picks provider + model
-2. `NEXUS_AI_GATEWAY_MODEL_<SKILL>` env var — skill-specific runtime (Anthropic only)
-3. `NEXUS_AI_GATEWAY_MODEL_DEFAULT` env var — all Anthropic skills fallback
+2. `AI_GATEWAY_MODEL_<SKILL>` env var — skill-specific runtime (Anthropic only)
+3. `AI_GATEWAY_MODEL_DEFAULT` env var — all Anthropic skills fallback
 4. Policy tier binding in `authz/policies.json`
 
-Skill name → env var: uppercase, `.` and `-` → `_`. Example `crawler.extract` → `NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT`.
+Skill name → env var: uppercase, `.` and `-` → `_`. Example `crawler.extract` → `AI_GATEWAY_MODEL_CRAWLER_EXTRACT`.
 
 Env override applies ONLY to Anthropic providers (`anthropic-api`, `anthropic-cli`). Skills bound `openai-compat` (DeepSeek/Gemini) are untouched — cross-provider swap needs `baseUrl` + `apiKeyEnv` which env vars can't carry.
 
@@ -182,7 +182,7 @@ config/
 prefix (`cc/`, `ds/`, `cx/`) per family (anthropic, deepseek, codex). Family
 knobs (prefix, original hosts, match rule, `baseUrlEnv` list, proxy-enable flag
 env, token-switch behavior) live in `config/proxy.json`. `.env` controls behavior
-at runtime (`NEXUS_CLAUDE_BASE_URL`, `NEXUS_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE`,
+at runtime (`ANTHROPIC_BASE_URL_NEXUS`, `AI_9ROUTER_RUNTIME_DEEPSEEK_API_ENABLE`,
 etc.) — `config/proxy.json` only declares which env vars matter per family and how
 they combine.
 

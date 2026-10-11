@@ -128,7 +128,7 @@ class AnthropicCLIAdapter extends IAIAdapter {
             argv.push("-p", cleanPrompt);
             // Endpoint switch (2026-07-10): pass resolved baseUrl into the child's
             // env explicitly rather than relying on inherited process env, so the
-            // per-vendor NEXUS_CLAUDE_BASE_URL override (or empty → direct API)
+            // per-vendor ANTHROPIC_BASE_URL_NEXUS override (or empty → direct API)
             // always wins regardless of what the parent process has set.
             // detached: true → child gets its own process group (pgid = child.pid).
             // On timeout we SIGKILL the whole group so MCP server children

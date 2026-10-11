@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.0]
+
+### BREAKING
+
+Env var names renamed to `<SUPPLIER>_<LOẠI>_<MỤC_ĐÍCH>`. Old `NEXUS_*` names are
+no longer read (no alias, no fallback); logic unchanged. Consumers must update
+`.env` and any config that stores env names (e.g. `apiKeyEnv` in the model
+registry `config/llm-config.json` / Notion "LLM Models").
+
+| Old | New |
+|---|---|
+| `NEXUS_9ROUTER_<X>` (`_BASE_URL`, `_TOKEN`, `_RUNTIME_DEEPSEEK_API_ENABLE`, `_RUNTIME_OPENAI_CLI_ENABLE`) | `AI_9ROUTER_<X>` |
+| `NEXUS_AI_GATEWAY_MODEL_<X>` | `AI_GATEWAY_MODEL_<X>` |
+| `NEXUS_OPENAI_API_KEY` | `OPENAI_API_KEY_NEXUS` |
+| `NEXUS_ANTHROPIC_API_KEY` | `ANTHROPIC_API_KEY_NEXUS` |
+| `NEXUS_DEEPSEEK_API_KEY` | `DEEPSEEK_API_KEY_NEXUS` |
+| `NEXUS_GOOGLE_API_KEY` | `GOOGLE_API_KEY_NEXUS` |
+| `NEXUS_CLAUDE_BASE_URL` | `ANTHROPIC_BASE_URL_NEXUS` |
+| `NEXUS_CODEX_BASE_URL` | `OPENAI_CODEX_BASE_URL` |
+| `NEXUS_DEEPSEEK_BASE_URL` | `DEEPSEEK_BASE_URL_NEXUS` |
+| `NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT` | `TELEGRAM_CHANNEL_STATUS_ALERT_ID` |
+
 ## [1.7.0]
 
 ### Added

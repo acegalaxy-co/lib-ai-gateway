@@ -33,7 +33,7 @@ function _mockFetch(handler) {
 
 test("dispatchEmbed: rag.embed fast → openai-embeddings allow path", async () => {
   const { gw } = _load();
-  process.env.NEXUS_OPENAI_API_KEY = "sk-test";
+  process.env.OPENAI_API_KEY_NEXUS = "sk-test";
   const restore = _mockFetch(async (url, opts) => {
     assert.equal(url, "https://api.openai.com/v1/embeddings");
     const body = JSON.parse(opts.body);
@@ -59,7 +59,7 @@ test("dispatchEmbed: rag.embed fast → openai-embeddings allow path", async () 
     assert.equal(r.tokensIn, 12);
   } finally {
     restore();
-    delete process.env.NEXUS_OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY_NEXUS;
   }
 });
 
@@ -90,7 +90,7 @@ test("dispatchEmbed: provider missing embed() method → L1 deny", async () => {
 
 test("dispatchEmbed: audit log records call with provider+model+tokensIn", async () => {
   const { gw, tmpLog } = _load();
-  process.env.NEXUS_OPENAI_API_KEY = "sk-test";
+  process.env.OPENAI_API_KEY_NEXUS = "sk-test";
   const restore = _mockFetch(async () => ({
     ok: true, status: 200,
     json: async () => ({
@@ -110,6 +110,6 @@ test("dispatchEmbed: audit log records call with provider+model+tokensIn", async
     assert.equal(rec.outcome, "allow");
   } finally {
     restore();
-    delete process.env.NEXUS_OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY_NEXUS;
   }
 });

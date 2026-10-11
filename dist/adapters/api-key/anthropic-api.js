@@ -26,9 +26,9 @@ function _getClient(apiKeyEnv, baseUrl) {
         }
     }
     else {
-        apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXUS_ANTHROPIC_API_KEY;
+        apiKey = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_NEXUS;
         if (!apiKey) {
-            throw new Error("Anthropic API key not set. Expected environment variable: ANTHROPIC_API_KEY or NEXUS_ANTHROPIC_API_KEY");
+            throw new Error("Anthropic API key not set. Expected environment variable: ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_NEXUS");
         }
     }
     // eslint-disable-next-line @typescript-eslint/no-var-requires

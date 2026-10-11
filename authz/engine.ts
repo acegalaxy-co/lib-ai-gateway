@@ -25,7 +25,7 @@ interface TierBinding {
   model?: string;
   // Optional provider-specific extras (passed verbatim into adapter.complete).
   // - openai-compat / openai-embeddings: baseUrl + apiKeyEnv required
-  // - anthropic-api: none (key from ANTHROPIC_API_KEY/NEXUS_ANTHROPIC_API_KEY)
+  // - anthropic-api: none (key from ANTHROPIC_API_KEY/ANTHROPIC_API_KEY_NEXUS)
   // - anthropic-cli: timeoutMs?, allowedTools? (CSV)
   baseUrl?: string;
   apiKeyEnv?: string;

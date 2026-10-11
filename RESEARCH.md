@@ -78,7 +78,7 @@ repo.
   anthropic-cli, gemini-cli, codex-cli, openai-compat, openai-embeddings) mà
   không đổi core dispatch logic.
 - **Model resolution ưu tiên theo lớp** (modelOverride param → env
-  `NEXUS_AI_GATEWAY_MODEL_<SKILL>` → env `..._DEFAULT` → policy tier binding)
+  `AI_GATEWAY_MODEL_<SKILL>` → env `..._DEFAULT` → policy tier binding)
   — cho phép runtime override khẩn cấp qua env mà không cần deploy lại, giới
   hạn scope override chỉ ở Anthropic (cross-provider cần đổi cả baseUrl +
   apiKeyEnv nên env variable không đủ diễn tả).

@@ -34,7 +34,7 @@ interface AdapterCompleteRequest {
   maxOutputTokens: number;
   schema?: Record<string, unknown> | null;
   apiKeyEnv?: string;
-  // Endpoint override (resolved by authz/engine.ts from NEXUS_CLAUDE_BASE_URL,
+  // Endpoint override (resolved by authz/engine.ts from ANTHROPIC_BASE_URL_NEXUS,
   // 2026-07-10). Empty/unset → SDK default (direct api.anthropic.com).
   baseUrl?: string;
 }
@@ -68,9 +68,9 @@ function _getClient(apiKeyEnv?: string, baseUrl?: string): any {
       throw new Error(`Anthropic API key not set. Expected environment variable: ${keyPart}`);
     }
   } else {
-    apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXUS_ANTHROPIC_API_KEY;
+    apiKey = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_NEXUS;
     if (!apiKey) {
-      throw new Error("Anthropic API key not set. Expected environment variable: ANTHROPIC_API_KEY or NEXUS_ANTHROPIC_API_KEY");
+      throw new Error("Anthropic API key not set. Expected environment variable: ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_NEXUS");
     }
   }
 

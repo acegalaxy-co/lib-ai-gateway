@@ -23,8 +23,8 @@ function _loadAlert() {
 }
 
 test("alertClaudeCliLimit: injected transport gets (message, channelId) in order", async () => {
-  const prev = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-  process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = "-100999";
+  const prev = process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+  process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = "-100999";
   const got = {};
   try {
     const { alertClaudeCliLimit, _clearAlertCooldown } = _loadAlert();
@@ -37,14 +37,14 @@ test("alertClaudeCliLimit: injected transport gets (message, channelId) in order
     assert.match(got.message, /CLAUDE CLI LIMIT/, "message (1st arg) must be the body");
     assert.match(got.message, /invoice-enrich\.classify/, "message must include the skill");
   } finally {
-    if (prev === undefined) delete process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-    else process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = prev;
+    if (prev === undefined) delete process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+    else process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = prev;
   }
 });
 
 test("alertClaudeCliLimit: cooldown fires transport only once per scheduler:kind", async () => {
-  const prev = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-  process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = "-100999";
+  const prev = process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+  process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = "-100999";
   let calls = 0;
   try {
     const { alertClaudeCliLimit, _clearAlertCooldown } = _loadAlert();
@@ -54,14 +54,14 @@ test("alertClaudeCliLimit: cooldown fires transport only once per scheduler:kind
     await alertClaudeCliLimit("cd-sched", "skill", "weekly_7d", null, send);
     assert.equal(calls, 1, "second call within cooldown must be skipped");
   } finally {
-    if (prev === undefined) delete process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-    else process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = prev;
+    if (prev === undefined) delete process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+    else process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = prev;
   }
 });
 
 test("alertClaudeCliLimit: no channel env → transport not called, no throw", async () => {
-  const prev = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-  delete process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
+  const prev = process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+  delete process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
   let called = false;
   try {
     const { alertClaudeCliLimit, _clearAlertCooldown } = _loadAlert();
@@ -69,13 +69,13 @@ test("alertClaudeCliLimit: no channel env → transport not called, no throw", a
     await alertClaudeCliLimit("s2", "skill", "weekly_7d", null, () => { called = true; });
     assert.equal(called, false, "transport must not fire without channel id");
   } finally {
-    if (prev !== undefined) process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = prev;
+    if (prev !== undefined) process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = prev;
   }
 });
 
 test("alertClaudeCliLimit: throwing or missing transport does not throw", async () => {
-  const prev = process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-  process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = "-100999";
+  const prev = process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+  process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = "-100999";
   try {
     const { alertClaudeCliLimit, _clearAlertCooldown } = _loadAlert();
 
@@ -92,7 +92,7 @@ test("alertClaudeCliLimit: throwing or missing transport does not throw", async 
 
     assert.ok(true, "both calls resolved without throwing");
   } finally {
-    if (prev === undefined) delete process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT;
-    else process.env.NEXUS_TELEGRAM_CHANNEL_STATUS_ALERT = prev;
+    if (prev === undefined) delete process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID;
+    else process.env.TELEGRAM_CHANNEL_STATUS_ALERT_ID = prev;
   }
 });

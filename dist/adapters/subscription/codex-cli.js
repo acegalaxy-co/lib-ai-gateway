@@ -44,7 +44,7 @@ class CodexCLIAdapter extends IAIAdapter {
             if (modelArg)
                 argv.push("-m", modelArg);
             // Endpoint switch (2026-07-10): req.baseUrl is resolved by authz/engine.ts
-            // from NEXUS_CODEX_BASE_URL. Empty/unset → leave codex's own provider
+            // from OPENAI_CODEX_BASE_URL. Empty/unset → leave codex's own provider
             // config untouched (direct api.openai.com). Non-empty → override the
             // codex provider's base_url via `-c` so we don't depend on a static
             // ~/.codex/config.toml.

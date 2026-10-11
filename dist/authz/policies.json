@@ -74,8 +74,8 @@
     },
     "rag.embed": {
       "tiers": {
-        "fast":     { "provider": "openai-embeddings", "model": "text-embedding-3-small", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "NEXUS_OPENAI_API_KEY" },
-        "balanced": { "provider": "openai-embeddings", "model": "text-embedding-3-large", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "NEXUS_OPENAI_API_KEY" }
+        "fast":     { "provider": "openai-embeddings", "model": "text-embedding-3-small", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "OPENAI_API_KEY_NEXUS" },
+        "balanced": { "provider": "openai-embeddings", "model": "text-embedding-3-large", "baseUrl": "https://api.openai.com/v1", "apiKeyEnv": "OPENAI_API_KEY_NEXUS" }
       },
       "maxOutputTokens": 1,
       "dailyTokenQuota": 10000000
@@ -91,7 +91,7 @@
       "dailyTokenQuota": 100000
     },
     "crawler.preflight": {
-      "_doc": "Read-only live session check for Facebook/Telegram: launches the persistent CloakBrowser profile, opens Facebook and Telegram Web and reports ok|expired|unknown per platform. Never logs in and never clicks login buttons (no click/type/press_key tools). ~1 call per crawler run plus one re-check on expired. Default Haiku primary + Sonnet on deep; force a model via env NEXUS_AI_GATEWAY_MODEL_CRAWLER_PREFLIGHT. Excluded from anthropic-cli slim mode.",
+      "_doc": "Read-only live session check for Facebook/Telegram: launches the persistent CloakBrowser profile, opens Facebook and Telegram Web and reports ok|expired|unknown per platform. Never logs in and never clicks login buttons (no click/type/press_key tools). ~1 call per crawler run plus one re-check on expired. Default Haiku primary + Sonnet on deep; force a model via env AI_GATEWAY_MODEL_CRAWLER_PREFLIGHT. Excluded from anthropic-cli slim mode.",
       "tiers": {
         "fast":     { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_evaluate,mcp__CloakBrowser__cloak_screenshot,mcp__CloakBrowser__cloak_close" },
         "balanced": { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_evaluate,mcp__CloakBrowser__cloak_screenshot,mcp__CloakBrowser__cloak_close" },
@@ -101,7 +101,7 @@
       "dailyTokenQuota": 500000
     },
     "crawler.join": {
-      "_doc": "Crawler Facebook/Telegram group-join check via CloakBrowser MCP. Cheap: 5-30s + few browser tool calls per channel. Runs ~10-30 channels/day per feature (artist/dev/qaqc/gd) → conservative daily quota. Default Haiku 4.5 primary + Sonnet 4.6 fallback (2026-07-07): gateway-runner auto-retry deep tier khi Haiku fail JSON parse. Force pure Haiku via caller fallbackTier=null; force Sonnet always via NEXUS_AI_GATEWAY_MODEL_CRAWLER_JOIN=claude-sonnet-4-6. 2026-10-11: allowedTools extended with cloak_evaluate/cloak_wait/cloak_scroll/cloak_press_key/cloak_screenshot (measured in production as what join checks actually use); cloak_type deliberately excluded so a join task cannot answer join questions.",
+      "_doc": "Crawler Facebook/Telegram group-join check via CloakBrowser MCP. Cheap: 5-30s + few browser tool calls per channel. Runs ~10-30 channels/day per feature (artist/dev/qaqc/gd) → conservative daily quota. Default Haiku 4.5 primary + Sonnet 4.6 fallback (2026-07-07): gateway-runner auto-retry deep tier khi Haiku fail JSON parse. Force pure Haiku via caller fallbackTier=null; force Sonnet always via AI_GATEWAY_MODEL_CRAWLER_JOIN=claude-sonnet-4-6. 2026-10-11: allowedTools extended with cloak_evaluate/cloak_wait/cloak_scroll/cloak_press_key/cloak_screenshot (measured in production as what join checks actually use); cloak_type deliberately excluded so a join task cannot answer join questions.",
       "tiers": {
         "fast":     { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close,mcp__CloakBrowser__cloak_evaluate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_screenshot" },
         "balanced": { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 180000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_close,mcp__CloakBrowser__cloak_evaluate,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_screenshot" },
@@ -111,7 +111,7 @@
       "dailyTokenQuota": 500000
     },
     "crawler.extract": {
-      "_doc": "Crawler post/profile extraction from FB Group/Telegram/Upwork/Fiverr/LinkedIn/Diễn đàn VN via CloakBrowser MCP. 5-30s + browser interaction per keyword-channel pair. High-volume — 4 features × 5 batches × N channels × M keywords. Default Haiku 4.5 primary + Sonnet 4.6 fallback (2026-07-07): gateway-runner tự retry với deep tier khi Haiku fail JSON parse (Haiku thường prose preamble). Force pure Haiku via caller fallbackTier=null; force Sonnet always via NEXUS_AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-sonnet-4-6.",
+      "_doc": "Crawler post/profile extraction from FB Group/Telegram/Upwork/Fiverr/LinkedIn/Diễn đàn VN via CloakBrowser MCP. 5-30s + browser interaction per keyword-channel pair. High-volume — 4 features × 5 batches × N channels × M keywords. Default Haiku 4.5 primary + Sonnet 4.6 fallback (2026-07-07): gateway-runner tự retry với deep tier khi Haiku fail JSON parse (Haiku thường prose preamble). Force pure Haiku via caller fallbackTier=null; force Sonnet always via AI_GATEWAY_MODEL_CRAWLER_EXTRACT=claude-sonnet-4-6.",
       "tiers": {
         "fast":     { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_evaluate,mcp__CloakBrowser__cloak_close" },
         "balanced": { "provider": "anthropic-cli", "modelKey": "haiku_api",  "timeoutMs": 300000, "allowedTools": "mcp__CloakBrowser__cloak_launch,mcp__CloakBrowser__cloak_new_page,mcp__CloakBrowser__cloak_navigate,mcp__CloakBrowser__cloak_snapshot,mcp__CloakBrowser__cloak_click,mcp__CloakBrowser__cloak_type,mcp__CloakBrowser__cloak_scroll,mcp__CloakBrowser__cloak_read_page,mcp__CloakBrowser__cloak_wait,mcp__CloakBrowser__cloak_press_key,mcp__CloakBrowser__cloak_evaluate,mcp__CloakBrowser__cloak_close" },
@@ -131,7 +131,7 @@
       "dailyTokenQuota": 1000000
     },
     "sensitive-classifier.classify": {
-      "_doc": "Runtime query classifier used after keyword pre-filter in src/app/llm/sensitive-classifier.ts. API-key Haiku keeps this off subscription budget; use NEXUS_AI_GATEWAY_MODEL_SENSITIVE_CLASSIFIER_CLASSIFY for runtime model override.",
+      "_doc": "Runtime query classifier used after keyword pre-filter in src/app/llm/sensitive-classifier.ts. API-key Haiku keeps this off subscription budget; use AI_GATEWAY_MODEL_SENSITIVE_CLASSIFIER_CLASSIFY for runtime model override.",
       "tiers": {
         "fast":     { "provider": "anthropic-api", "modelKey": "haiku_api" },
         "balanced": { "provider": "anthropic-api", "modelKey": "sonnet_api" }

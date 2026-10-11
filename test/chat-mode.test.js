@@ -44,7 +44,7 @@ function _mockFetch(handler) {
 
 test("chat-mode: messages[] + system prompt → translated to OpenAI shape", async () => {
   const gw = _load();
-  process.env.NEXUS_DEEPSEEK_API_KEY = "sk-test";
+  process.env.DEEPSEEK_API_KEY_NEXUS = "sk-test";
   let observedBody = null;
   const restore = _mockFetch(async (_url, opts) => {
     observedBody = JSON.parse(opts.body);
@@ -79,13 +79,13 @@ test("chat-mode: messages[] + system prompt → translated to OpenAI shape", asy
     assert.equal(observedBody.messages[3].role, "user");
   } finally {
     restore();
-    delete process.env.NEXUS_DEEPSEEK_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY_NEXUS;
   }
 });
 
 test("chat-mode: tools[] passed as OpenAI function specs", async () => {
   const gw = _load();
-  process.env.NEXUS_DEEPSEEK_API_KEY = "sk-test";
+  process.env.DEEPSEEK_API_KEY_NEXUS = "sk-test";
   let observedBody = null;
   const restore = _mockFetch(async (_url, opts) => {
     observedBody = JSON.parse(opts.body);
@@ -110,13 +110,13 @@ test("chat-mode: tools[] passed as OpenAI function specs", async () => {
     assert.equal(observedBody.tools[0].function.description, "Get weather");
   } finally {
     restore();
-    delete process.env.NEXUS_DEEPSEEK_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY_NEXUS;
   }
 });
 
 test("chat-mode: tool_calls in response → needsToolExecution + Anthropic-shape content", async () => {
   const gw = _load();
-  process.env.NEXUS_DEEPSEEK_API_KEY = "sk-test";
+  process.env.DEEPSEEK_API_KEY_NEXUS = "sk-test";
   const restore = _mockFetch(async () => ({
     ok: true, status: 200,
     json: async () => ({
@@ -153,13 +153,13 @@ test("chat-mode: tool_calls in response → needsToolExecution + Anthropic-shape
     assert.deepEqual(toolBlock.input, { city: "Hanoi" });
   } finally {
     restore();
-    delete process.env.NEXUS_DEEPSEEK_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY_NEXUS;
   }
 });
 
 test("chat-mode: modelOverride replaces tier binding (provider+model+baseUrl+apiKeyEnv)", async () => {
   const gw = _load();
-  process.env.NEXUS_OPENAI_API_KEY = "sk-test-openai";
+  process.env.OPENAI_API_KEY_NEXUS = "sk-test-openai";
   let observedUrl = null;
   let observedAuth = null;
   let observedModel = null;
@@ -184,7 +184,7 @@ test("chat-mode: modelOverride replaces tier binding (provider+model+baseUrl+api
         provider: "openai-compat",
         model: "gpt-5.4-mini",
         baseUrl: "https://api.openai.com/v1",
-        apiKeyEnv: "NEXUS_OPENAI_API_KEY",
+        apiKeyEnv: "OPENAI_API_KEY_NEXUS",
       },
     });
     assert.equal(r.outcome, "allow");
@@ -195,13 +195,13 @@ test("chat-mode: modelOverride replaces tier binding (provider+model+baseUrl+api
     assert.equal(observedModel, "gpt-5.4-mini");
   } finally {
     restore();
-    delete process.env.NEXUS_OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY_NEXUS;
   }
 });
 
 test("chat-mode: streaming via onDelta → accumulates text + reports usage", async () => {
   const gw = _load();
-  process.env.NEXUS_DEEPSEEK_API_KEY = "sk-test";
+  process.env.DEEPSEEK_API_KEY_NEXUS = "sk-test";
   // Mock fetch returning an SSE stream.
   const sseChunks = [
     'data: {"choices":[{"delta":{"content":"Hello"}}]}\n',
@@ -238,13 +238,13 @@ test("chat-mode: streaming via onDelta → accumulates text + reports usage", as
     assert.deepEqual(deltas, ["Hello", " world"]);
   } finally {
     restore();
-    delete process.env.NEXUS_DEEPSEEK_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY_NEXUS;
   }
 });
 
 test("chat-mode: assistant message with tool_use blocks → translated to OpenAI tool_calls", async () => {
   const gw = _load();
-  process.env.NEXUS_DEEPSEEK_API_KEY = "sk-test";
+  process.env.DEEPSEEK_API_KEY_NEXUS = "sk-test";
   let observedMessages = null;
   const restore = _mockFetch(async (_url, opts) => {
     observedMessages = JSON.parse(opts.body).messages;
@@ -284,6 +284,6 @@ test("chat-mode: assistant message with tool_use blocks → translated to OpenAI
     assert.equal(toolMsg.content, "Sunny, 28°C");
   } finally {
     restore();
-    delete process.env.NEXUS_DEEPSEEK_API_KEY;
+    delete process.env.DEEPSEEK_API_KEY_NEXUS;
   }
 });
