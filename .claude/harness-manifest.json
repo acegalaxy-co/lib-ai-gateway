@@ -7,8 +7,12 @@
       "sha256": "a3c51b4ecd20b5b8607933682856cc7657693badf5adc4d391532e92ee312bfd"
     },
     {
+      "path": ".claude/agents/browser-web.md",
+      "sha256": "d6d0782ee0c0be321bac9988ea8e3cf62dd1f8deda17459db63be21074dd30c2"
+    },
+    {
       "path": ".claude/agents/code-reviewer.md",
-      "sha256": "38db544015763dec1bd9a2452202b6dd11dcc9745c2ec7ac12091e683bcfce6a"
+      "sha256": "195a94420da384aa7b28b29279bdd3af3a4a6db2204a11fa8dcf91a98f3bb043"
     },
     {
       "path": ".claude/agents/delegate-codex.md",
@@ -40,11 +44,11 @@
     },
     {
       "path": ".claude/hooks/post-edit-advisor.sh",
-      "sha256": "ffc581564660b9ae4fe565b337ed0613b22d0e1558ed944f405fa655f20bbc58"
+      "sha256": "388649a3a95a866432f6d64069878bfe8511c80f2ffdbb5da0b9aa23ecd3c4ee"
     },
     {
       "path": ".claude/hooks/pre-bash-gate.sh",
-      "sha256": "368464ccfa543f276a1c0bb3662a41530002309d42cb681a63fe4a49649d88a7"
+      "sha256": "3d6ea24fa47c783fbf2da70710f1caa71069886254250439c8c550c1916245a6"
     },
     {
       "path": ".claude/hooks/pre-browser-profile-gate.sh",
@@ -71,6 +75,10 @@
       "sha256": "8cd1a32537518d8c073091005b5325fb57e41a2ea5ea44c8a2002d0b186e8891"
     },
     {
+      "path": ".claude/hooks/pre-read-inject-dir-doc.sh",
+      "sha256": "13d492a7f0f5a4469c2666031cf0fd5daf740589fcc023848b042bca0579f1b6"
+    },
+    {
       "path": ".claude/hooks/pre-task-dispatch-gate.sh",
       "sha256": "7c46f71415beb4a064919b1960d486e9fd29a4189cdfc4061ba280df69cb84b8"
     },
@@ -84,11 +92,11 @@
     },
     {
       "path": ".claude/rules/common/delegate-llm.md",
-      "sha256": "748fd79754565dced8be552db068b8984f96818cd0f2f126e9aee70fe39a9037"
+      "sha256": "6b51597eed73064f28bad5394c62370bdae4c672f21e5d375a9bee7bebb32f93"
     },
     {
       "path": ".claude/rules/common/deploy-security.md",
-      "sha256": "06ef740f9dc2e785167a8711bf0e6ffa1fb987475027e929c1f024cb4708fe74"
+      "sha256": "0a308a16bd44c832b9713b7154ce6ad2c9f5a28f58b1b30f8ac7aa72d6c2664f"
     },
     {
       "path": ".claude/rules/common/feature-redflags.md",
@@ -96,7 +104,7 @@
     },
     {
       "path": ".claude/rules/common/general.md",
-      "sha256": "603216333ea5f597ff02edff3bc34371e23042ab3913f6e40d6a1b40ee2601e4"
+      "sha256": "19fcc9f11f0ad8dffc695ecdc03f2691c07ec1077177ca57099465cca8e57fd0"
     },
     {
       "path": ".claude/rules/common/git-conventions.md",
@@ -116,7 +124,7 @@
     },
     {
       "path": ".claude/rules/common/secrets-no-printout.md",
-      "sha256": "77b911010c788c9ddff58b5ad3f871d026074a277def1ebc05b4b58783ae009c"
+      "sha256": "fd5eca2943405b0a82285e7fb2f388e0a96ef51cc982aae07ab1c8790aad0a59"
     },
     {
       "path": ".claude/rules/common/token-budget.md",
@@ -124,7 +132,7 @@
     },
     {
       "path": ".claude/rules/common/vault-no-mcp.md",
-      "sha256": "09423b6ae0529283c5d670b9f48091ed2ea75033e5c0318dbcb5c530b7c2b2fe"
+      "sha256": "aaca674176ec95f6ef51ed5f81af2496ccdcb4d08daf1c44357a9f0f3d2cc79a"
     },
     {
       "path": ".claude/skills/ace-library/SKILL.md",
@@ -141,6 +149,10 @@
     {
       "path": ".claude/skills/audit-dependency/SKILL.md",
       "sha256": "e1f1da2049ec895a2cd060013b2dde68a1d41eb1c097f1edfb48ac55bf3de2c5"
+    },
+    {
+      "path": ".claude/skills/audit-presence/SKILL.md",
+      "sha256": "143896edccb8295559d2bb4e2b1c0163bbd8dfd94df4546780fa988008922dc1"
     },
     {
       "path": ".claude/skills/audit-vietnamese/SKILL.md",
@@ -219,6 +231,10 @@
       "sha256": "5940ddf582970950bc67b4875d0be0e35d8ae9e22e99be50bd64b64da248c18e"
     },
     {
+      "path": ".claude/skills/production-deploy-rsync/SKILL.md",
+      "sha256": "09fdf09a010613767e053b753f946dfbf5b38d0cf674f19bdcf18dbfd0cc18c7"
+    },
+    {
       "path": ".claude/skills/production-deploy/SKILL.md",
       "sha256": "745247be38fd522a74da6958cd2bf2c2d2ed1b2fefdb67aa5666fe8e1647d93c"
     },
@@ -227,8 +243,20 @@
       "sha256": "73a633e3fbc2e0b59b80b7ee282799caee8c00a70a300eb6534576b2d396bdcc"
     },
     {
+      "path": ".claude/skills/recap/SKILL.md",
+      "sha256": "0f79677f534261148b8f70e6a1e85cc301ae7c9005625b77174d755d0a5dfef9"
+    },
+    {
       "path": ".claude/skills/research/SKILL.md",
       "sha256": "0ad78e7f5943c1d08080fd84fd6d90a6d2f1fc65a150e22650467f9afc1742ad"
+    },
+    {
+      "path": ".claude/skills/rotate-secret/SKILL.md",
+      "sha256": "3c2aaa14a2367196214103ad4e7caf73fa836bd1dbe5c9da530b131ca5d6f3dc"
+    },
+    {
+      "path": ".claude/skills/seo/SKILL.md",
+      "sha256": "d45ca852c073338931e927fc6137595c22ee83adab9aa7384f4efcb997aaa326"
     },
     {
       "path": ".claude/skills/task-loop-feature/SKILL.md",
@@ -253,6 +281,10 @@
     {
       "path": ".claude/skills/update-gemini/SKILL.md",
       "sha256": "0ba2c4bc827c331fee80de672fe2c88a1c019934179d6b7e9eaed5ff0a2c9311"
+    },
+    {
+      "path": ".claude/skills/web-browse/SKILL.md",
+      "sha256": "f0f5c0d59a324ca6b771db3c6dbb72a8bc454aa4e7b8948864be542a3e2b7f7e"
     },
     {
       "path": ".claude/statusline-orchestration.sh",
@@ -280,20 +312,23 @@
     },
     {
       "path": "scripts/delegate/run-codex.sh",
-      "sha256": "690e881b41da904880c6deb72db3e47c5480697f6a04f06a8cc3789fc35792a4"
+      "sha256": "107bf18c913d9fa24c4e401a85e0a4af0bd2650834eea1ad73892b3c888257c5"
     },
     {
       "path": "scripts/delegate/run-gemini.sh",
-      "sha256": "66bd0a5c76ad885bdc7eacd78fdfd5169355a2167860647af8bac15f7636bb1c"
+      "sha256": "79492d93e42c8ab879a4c0bb6690b098a7364daed5eea22c1abe41e44f790acf"
     }
   ],
   "preservePaths": [
     ".claude/allowed-hosts.txt",
     ".claude/memory-mirror/MEMORY.md",
+    ".claude/protected-paths.txt",
     ".claude/rules/project/browser-mcp-profiles.md",
     ".claude/rules/project/git-workflow.md",
+    ".claude/rules/project/module-md.md",
     ".claude/rules/project/processes-layout.md",
     ".claude/rules/project/skill-superpowers.md",
+    ".claude/rules/project/social-posting-safety.md",
     ".claude/rules/project/test-parallel.md",
     "CLAUDE.md"
   ],
@@ -317,7 +352,8 @@
     "HARNESS_DEPLOY_PATH": "<remote-repo-path>",
     "HARNESS_DEPLOY_BRANCH": "",
     "HARNESS_DEPLOY_REMOTE": "origin",
-    "HARNESS_DEPLOY_HEALTHCHECK": "<healthcheck-cmd>"
+    "HARNESS_DEPLOY_HEALTHCHECK": "<healthcheck-cmd>",
+    "HARNESS_CLOAK_MCP_CMD": "cloakbrowsermcp"
   },
   "settings": {
     "hooks": [
@@ -365,6 +401,11 @@
         "event": "PreToolUse",
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-edit-service-alert-gate.sh"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Read|Edit|Write|MultiEdit",
+        "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-read-inject-dir-doc.sh"
       },
       {
         "event": "PreToolUse",
