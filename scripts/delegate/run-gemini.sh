@@ -30,7 +30,7 @@ trap 'delegate_log gemini "exit trap — cleaning empty worktree if clean"; clea
 # (~15-60s), so a cold cache made every delegate call take minutes. User
 # picked a fixed default (baked in at harness-install time from the source
 # repo's .env); override per-call: GEMINI_MODEL=<id>.
-GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.5-flash}"
+GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.1-pro-preview}"
 delegate_log gemini "model: $GEMINI_MODEL"
 
 # P0 deny-list: never pump secret-bearing files into prompts.
