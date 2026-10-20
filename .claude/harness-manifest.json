@@ -148,7 +148,7 @@
     },
     {
       "path": ".claude/skills/ace-ai-explain/SKILL.md",
-      "sha256": "06eca1703c5558706c42e26965292e2d15c80bebcbde5c1d1488fb2125c149af"
+      "sha256": "03d83cbf33ee09bf02f32ee159c93325e74b7d3fc5404a442a754709c6feb842"
     },
     {
       "path": ".claude/skills/ace-library/SKILL.md",
@@ -156,7 +156,7 @@
     },
     {
       "path": ".claude/skills/ace-notion-rbac/SKILL.md",
-      "sha256": "85f26e776cef297d747c55f0047a80149cd2a8eb44c28821820e5c941073f95d"
+      "sha256": "8070cf76a2dac91564135b497031288e8afcae3a0b85d8cb37693a0fa2b707da"
     },
     {
       "path": ".claude/skills/audit-claude-md/SKILL.md",
@@ -189,10 +189,6 @@
     {
       "path": ".claude/skills/cloudflare/SKILL.md",
       "sha256": "f9e1d86b897fd3516ee4b513bfe0ff26dda684a4aad015e3ec4b69dd91f65292"
-    },
-    {
-      "path": ".claude/skills/copy-data-cmd/SKILL.md",
-      "sha256": "dec5440897b8b95ba09c0d1130ebb3501156afa4f435403f16a2901969643cf0"
     },
     {
       "path": ".claude/skills/dep-ladder-check/SKILL.md",
@@ -366,6 +362,7 @@
     ".claude/rules/project/skill-superpowers.md",
     ".claude/rules/project/social-posting-safety.md",
     ".claude/rules/project/test-parallel.md",
+    ".claude/skills/copy-data-cmd/SKILL.md",
     "CLAUDE.md"
   ],
   "installEnv": {
