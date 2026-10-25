@@ -48,7 +48,7 @@
     },
     {
       "path": ".claude/hooks/pre-bash-gate.sh",
-      "sha256": "3d6ea24fa47c783fbf2da70710f1caa71069886254250439c8c550c1916245a6"
+      "sha256": "b0dba1fc2a0cb3dbf362414eadbdbdac72182df3ec45cc6e82222d7fc904e878"
     },
     {
       "path": ".claude/hooks/pre-browser-profile-gate.sh",
@@ -108,11 +108,11 @@
     },
     {
       "path": ".claude/rules/common/general.md",
-      "sha256": "d1c24b43bde44c4ca33b3a3703b11f893fc05377ff7ea5f3d6b73995f15699af"
+      "sha256": "ca7216bcc34ca8d51d1944d135b65c37cdf7f02fabd350876c7f9ce75b85e5c0"
     },
     {
       "path": ".claude/rules/common/git-conventions.md",
-      "sha256": "bd42453974e81996a24dcc809270972014473db9ddc05ee3681cf6dd88172f92"
+      "sha256": "dfab70c4819e204bf71aad08b0a44c78aa7e5d6859e417a14ab6b20d9ff0cd1f"
     },
     {
       "path": ".claude/rules/common/memory-mirror.md",
@@ -124,7 +124,7 @@
     },
     {
       "path": ".claude/rules/common/rbac-security.md",
-      "sha256": "8f7aa68a28edf7afb00b8e8caf368e94778dbc65a446b5d30994de9158a3edcd"
+      "sha256": "e9015b88480034b58166c3666d0b50cf25b36ec22876e3c25384e69d9bd984d2"
     },
     {
       "path": ".claude/rules/common/rule-loading-policy.md",
@@ -144,7 +144,11 @@
     },
     {
       "path": ".claude/rules/common/web-favicon.md",
-      "sha256": "14387d255c32ff833049bd3f9aa04b1a75732ae9029de114a4a04460598a8d15"
+      "sha256": "302889a52a873230eb00581fe60a213eacebec62e361be4addcce277584dc5fa"
+    },
+    {
+      "path": ".claude/rules/common/web-ui-datatables.md",
+      "sha256": "6fc7d07ee715d2db4e44f9f2614e89eede12215cae225c237e8b5664cc8491a8"
     },
     {
       "path": ".claude/rules/common/web-ui-dialogs.md",
@@ -152,15 +156,31 @@
     },
     {
       "path": ".claude/skills/ace-ai-explain/SKILL.md",
-      "sha256": "03d83cbf33ee09bf02f32ee159c93325e74b7d3fc5404a442a754709c6feb842"
+      "sha256": "b643cfc348e8e07be5df0c4f555a4583505dc5352e39e9b676f6a6549cd4cd1d"
+    },
+    {
+      "path": ".claude/skills/ace-gen-image/SKILL.md",
+      "sha256": "6ebdf8651c6c2ed7b63ab3392f7ae5d960af7dc00f4944d588722b48832ade91"
+    },
+    {
+      "path": ".claude/skills/ace-gen-image/gen.py",
+      "sha256": "a9fa88b601bf2fafd1c6138c4a66d01bb8f853fc7c14ad6fc2dfe245e6ae5d74"
     },
     {
       "path": ".claude/skills/ace-library/SKILL.md",
-      "sha256": "c9596b0beddbbb255c587e8572122589662e1fd1c20e5d0203457cab051a7315"
+      "sha256": "a2b81b57ff6323a434e70833fb2a1052a16012dcc8c842b0b57e94811e45c841"
     },
     {
-      "path": ".claude/skills/ace-notion-rbac/SKILL.md",
-      "sha256": "3eee19e84ceb3e1b8a71eede15a1256e3483035cb9c437a7dd0f3960bbf049be"
+      "path": ".claude/skills/ace-rbac-notion/SKILL.md",
+      "sha256": "a7259891140be76f77cf4c36cdc87c597eca09465956bca511cd579b57a7e984"
+    },
+    {
+      "path": ".claude/skills/ace-security-scan/SKILL.md",
+      "sha256": "8e0dc5eb9646709932a94850be42f76712b6e70018ccfae9838ce3bcd95e95ab"
+    },
+    {
+      "path": ".claude/skills/ace-security-scan/scan.sh",
+      "sha256": "ad7918d46b9600c1e77e4227b8be448e94789fd21f2a075849817e691a2c38f9"
     },
     {
       "path": ".claude/skills/audit-claude-md/SKILL.md",
@@ -223,14 +243,6 @@
       "sha256": "7b1231c19c95852c8f0d809cc17b31d2bbd395bf8291d0c7f7c31a79b448af82"
     },
     {
-      "path": ".claude/skills/gen-image/SKILL.md",
-      "sha256": "59cd5c99e1ae38a17ab931ca0180db063145a21c17a1bd5d0e60e7dfdc3f9434"
-    },
-    {
-      "path": ".claude/skills/gen-image/gen.py",
-      "sha256": "a9fa88b601bf2fafd1c6138c4a66d01bb8f853fc7c14ad6fc2dfe245e6ae5d74"
-    },
-    {
       "path": ".claude/skills/git-cleanup-branch/SKILL.md",
       "sha256": "f42291b264619c57cc1337a484babcf2024ac68851bfc2921faff2a9629d293c"
     },
@@ -252,7 +264,7 @@
     },
     {
       "path": ".claude/skills/git-push-safety/SKILL.md",
-      "sha256": "e3afebf80894a9a36acd37f4a85dbf80698d08b5aad8bdb5ce0b64681fc0b26e"
+      "sha256": "be23900ffca792466de97f7537a96fdcd470acf9e16afb89544944f3d9898474"
     },
     {
       "path": ".claude/skills/orchestrate/SKILL.md",
@@ -264,11 +276,11 @@
     },
     {
       "path": ".claude/skills/production-deploy-rsync/SKILL.md",
-      "sha256": "09fdf09a010613767e053b753f946dfbf5b38d0cf674f19bdcf18dbfd0cc18c7"
+      "sha256": "e7f359e34b4e97622752d0e61972afc4c06551566cc5010edc0072e3c9aba50a"
     },
     {
       "path": ".claude/skills/production-deploy/SKILL.md",
-      "sha256": "745247be38fd522a74da6958cd2bf2c2d2ed1b2fefdb67aa5666fe8e1647d93c"
+      "sha256": "96c7c53e726eb7c940499d6194264e788d981fc2379db4d2edc1489a2d025b7b"
     },
     {
       "path": ".claude/skills/production-reboot/SKILL.md",
@@ -328,7 +340,7 @@
     },
     {
       "path": ".git/hooks/pre-push",
-      "sha256": "6becc152672fe08e3c64e779104090928884169e49186d034ec21d7a7f2ada09"
+      "sha256": "6a68c944b5698c54b1701f529059822fcdf3b8f9097bc861366626f88a5190ff"
     },
     {
       "path": "scripts/delegate/_common.sh",
@@ -390,7 +402,8 @@
     "HARNESS_DEPLOY_BRANCH": "",
     "HARNESS_DEPLOY_REMOTE": "origin",
     "HARNESS_DEPLOY_HEALTHCHECK": "<healthcheck-cmd>",
-    "HARNESS_CLOAK_MCP_CMD": "cloakbrowsermcp"
+    "HARNESS_CLOAK_MCP_CMD": "cloakbrowsermcp",
+    "HARNESS_ACE_DIR": ""
   },
   "modelDefaults": {
     "gemini": "gemini-3.1-pro-preview",
