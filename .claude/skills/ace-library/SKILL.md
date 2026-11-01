@@ -6,6 +6,8 @@ user-invocable: true
 
 # ace-library — discovery + cập nhật thư viện nội bộ ACE Galaxy
 
+> **Nhóm skill bảo mật (`ace-*`)** — nguồn phát triển là nhánh `ace-skill` của repo ccswitch, CHỈ push lên remote `kane` (repo private `kanalias/ccswitch-kane`). KHÔNG push nhánh `ace-skill` lên `origin` (public). Gate: `.claude/private-branches.txt` + `.git/hooks/pre-push` + ruleset GitHub. Xem rule `private-branch-kane`.
+
 Input: yêu cầu tính năng (`$ARGUMENTS`, có thể rỗng) + source/deps/lockfile/stack project hiện tại.
 
 **Mode theo `$ARGUMENTS`:**
@@ -113,7 +115,7 @@ Lib `@acegalaxy/*` là Node/JS. Project Java/Kotlin/Go/Python/PHP… (hoặc run
 
 1. **Port sẵn cùng ngôn ngữ trước:** grep -rE `port từ .*lib-<name>` trong các clone ở
    `~/Data/Local/Working/projects_repos/` → có thì copy + đổi config, KHÔNG viết lại. Port đã biết:
-   `lib-notion-rbac` Java → xem skill [ace-notion-rbac](../ace-notion-rbac/SKILL.md) mục "App không phải JS".
+   `lib-notion-rbac` Java → xem skill [ace-rbac-notion](../ace-rbac-notion/SKILL.md) mục "App không phải JS".
 2. **Clone lib đúng tag** làm nguồn sự thật (không cài vào project):
    `git clone --depth 1 --branch vX.Y.Z git@github.com:acegalaxy-co/lib-<name>.git /tmp/lib-<name>`.
    Đọc README + source API cần + `test/`.
