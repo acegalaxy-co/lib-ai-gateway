@@ -1,40 +1,69 @@
 ---
 name: task-loop-feature
-description: "Vòng lặp code → sửa → viết test → chạy test tới khi xong (test xanh, đạt acceptance). Dùng khi \"làm tới khi xong\" hoặc /task-loop-feature <task>."
+description: "Task loop tự chạy tới khi xong thật: spec + rubric đóng băng, TDD mỗi vòng, /goal giữ vòng lặp, reviewer độc lập chấm, ngân sách vòng + thoát BLOCKED. Dùng khi \"làm tới khi xong\", \"chạy loop\", hoặc /task-loop-feature <task>."
 user-invocable: true
 ---
 
-# task-loop-feature — implement/fix/test cho tới khi task xong thật
+# task-loop-feature — mô tả task, chạy loop tới khi acceptance đạt thật
 
-Vòng lặp: viết/sửa code → viết testcase → chạy test → nếu fail thì tìm root cause rồi sửa tiếp → lặp lại tới khi tất cả test pass và acceptance criteria của task đã đạt. Không dừng ở "trông có vẻ đúng" — chỉ dừng khi verify chạy thật pass.
+Method nền: [skill-superpowers.md](../../rules/project/skill-superpowers.md) (TDD red-green-refactor, debug 4 bước). Skill này thêm **khung loop**: spec đóng băng → vòng lặp có state → verifier riêng → ngân sách → report. Chỉ dừng khi check chạy thật pass VÀ reviewer độc lập APPROVE, hoặc khi guard báo BLOCKED.
 
-Method dùng ở đây build trên [skill-superpowers.md](../../rules/project/skill-superpowers.md) (TDD red-green-refactor + systematic debugging, lazy-load khi chạm code source) — không lặp lại nội dung, chỉ áp dụng thành loop cụ thể.
+**Lệnh test (`<test>` bên dưới):** lệnh test của project: `npm test`. Có typecheck/lint trong repo → chạy kèm.
 
-## Input cần có
+## Input
 
-Task mô tả rõ (từ user) + acceptance criteria.
+- Không có mô tả task (arg rỗng/placeholder) → hỏi user, KHÔNG đoán, KHÔNG tạo state.
+- Có task, thiếu acceptance → tự suy từ task + code; chỉ hỏi khi không đoán được "xong" nghĩa là gì.
+- Đã có `.claude/state/loop-<slug>/` dở (`status: running`) → resume từ đó, không tạo lại.
 
-- **Không có mô tả tính năng nào** (chạy `/task-loop-feature` trơn, hoặc arg rỗng/chỉ là placeholder) → hỏi ngay user tính năng cần làm là gì, KHÔNG tự đoán, KHÔNG bắt đầu loop.
-- Có mô tả tính năng nhưng thiếu acceptance criteria rõ ràng → suy ra từ task + code hiện có, không hỏi lại nếu Auto Mode cho phép tự quyết; chỉ hỏi khi task mơ hồ tới mức không đoán được "xong" nghĩa là gì.
+## Bước 0 — Chuẩn bị (1 lần)
 
-## Vòng lặp (lặp lại từ bước 2 tới khi xong)
+1. `slug` = kebab-case từ task. Tạo `.claude/state/loop-<slug>/` (runtime, không commit):
+   - `spec.md` — **đóng băng**: yêu cầu user nguyên văn + rubric `R1..Rn`, mỗi R = 1 điều kiện đo được kèm cách kiểm (vd `R1: <test> exit 0`, `R2: GET /x trả 404 khi id sai — test test/x.test.ts`) + cột `passes: false`. Cấm R mơ hồ kiểu "code sạch". Sau khi tạo CHỈ được đổi `passes`; muốn đổi nội dung R → dừng hỏi user.
+   - `progress.md` — append-only. Đầu file `## Patterns` (kiến thức tái dùng); mỗi vòng 1 mục `## vòng N — <giờ>`: làm gì, file đổi, kết quả check, learnings.
+   - `state.json` — `{"iteration":0,"max_iterations":10,"no_progress":0,"same_error":{"sig":"","count":0},"status":"running"}`.
+2. **Smoke baseline** — chạy `<test>` TRƯỚC khi sửa gì. Đỏ sẵn → ghi tên test vào `spec.md` mục `Baseline đỏ`; không tính là lỗi của loop, không sửa lan trừ khi nằm trong rubric.
+3. **Chẻ story** khi task không vừa 1 context: mỗi story (id, acceptance, priority, passes) trong `spec.md`, **1 story/vòng**. ≥2 story WRITE độc lập muốn chạy song song → `/orchestrate`; skill này giữ rubric + verifier.
+4. **UI/web** → rubric PHẢI có R kiểm bằng browser headless (screenshot/DOM), không chỉ unit test.
+5. **Bật loop:**
+   ```text
+   /goal Theo .claude/state/loop-<slug>/spec.md: mọi R passes=true kèm output check trong transcript, <test> exit 0, reviewer trả "VERDICT: APPROVE", git status sạch sau commit. Dừng nếu state.json status=BLOCKED hoặc sau 10 vòng.
+   ```
+   Không có `/goal` (headless, hook tắt) → tự lặp trong turn theo mục Vòng lặp, đọc `state.json` đầu mỗi vòng.
 
-1. **Hiểu task + baseline.** Đọc code/test liên quan trong scope. Xác định acceptance criteria cụ thể (input→output đúng là gì).
-2. **RED — viết testcase trước khi sửa code chính.** Test phải fail đúng lý do (chưa có behavior, không phải lỗi test). Theo pattern test có sẵn trong repo (tìm file test tương tự cùng thư mục/module trước khi viết mới).
-3. **GREEN — code tối thiểu cho test pass.** Không thêm gì ngoài yêu cầu.
-4. **Chạy test suite thật:** lệnh test của project: `npm test` (hoặc file test cụ thể vừa sửa). Không suy đoán kết quả — chạy và đọc output.
-5. **Fail?** → Đây là debugging thật, không phải "thử lại": reproduce lỗi chính xác, isolate vùng sai (bisect log/code), xác định root cause (giải thích được VÌ SAO sai), sửa đúng chỗ đó, quay lại bước 4.
-6. **Pass?** → Kiểm tra còn thiếu edge case nào của acceptance criteria không (lỗi input, giá trị biên, guard cũ). Thiếu → quay lại bước 2 cho case đó.
-7. **Refactor** (dọn code) chỉ khi test đang xanh; chạy lại bước 4 sau refactor để confirm vẫn xanh.
-8. Đủ acceptance criteria + tất cả test pass → thoát loop, sang Report.
+## Vòng lặp (mỗi vòng = 1 R hoặc 1 story)
 
-## Guard chống loop vô hạn
+1. **Đọc lại state** — `state.json` + `progress.md` + R đang làm. Sau compact/resume tiếp đúng chỗ, không phân tích lại từ đầu.
+2. **RED** — viết test fail đúng lý do (chưa có behavior, không phải lỗi test), theo pattern test có sẵn cùng module.
+3. **GREEN** — code tối thiểu cho test pass. Không sửa ngoài R đang làm.
+4. **Check song song** — typecheck ‖ lint ‖ `<test>` trong 1 message nhiều Bash call (suite nặng → chỉ file liên quan; full suite trước khi gọi reviewer). Đọc output thật, không suy đoán.
+5. **Fail** → debug 4 bước: reproduce → isolate → root cause giải thích được VÌ SAO → fix → quay bước 4. Cập nhật `same_error.sig` (dòng lỗi chuẩn hoá) + `count` (reset khi lỗi khác).
+6. **Pass** → rà edge case của R (input lỗi, biên, guard cũ); thiếu → quay bước 2. Refactor chỉ khi xanh, chạy lại bước 4.
+7. **Chốt vòng** — commit 1 R/story `feat|fix: [R<n>] <tóm tắt>` CHỈ khi check xanh; set `passes: true`; append `progress.md`; `iteration++`; `no_progress` = 0 nếu vòng có đổi file, ngược lại +1.
+8. Còn R `passes: false` → vòng mới. Hết → Verifier.
 
-- Tối đa 3 lần fail liên tiếp trên CÙNG một lỗi → dừng, báo user thay vì thử thêm (nghi ngờ spec sai hoặc thiếu thông tin, không phải thiếu effort).
-- Mỗi vòng phải có thay đổi thật (code hoặc test) — nếu chạy lại y hệt không sửa gì mà mong kết quả khác, dừng lại và chẩn đoán lại từ bước 5.
+## Verifier (generator ≠ verifier)
 
-## Report
+- Dispatch agent `code-reviewer` (read-only): prompt kèm path `spec.md` + range commit của loop + "chấm từng R: SATISFIED/MISSING kèm bằng chứng, skip style".
+- `VERDICT: REVISE` → R bị MISSING đặt lại `passes: false`, vòng mới.
+- `VERDICT: APPROVE` + check xanh → thoát loop, sang Report.
+- Loop KHÔNG tự phát `APPROVE`, không sửa verdict của reviewer.
 
-- Task nào đã hoàn thiện, bao nhiêu vòng lặp, test nào được thêm/sửa.
-- Lệnh verify cuối cùng đã chạy + kết quả (pass/fail thật, không phải suy đoán).
-- Nếu dừng do guard (chưa xong) → nói rõ đang kẹt ở đâu, cần gì từ user để tiếp tục.
+## Guard — dừng, không "cố thêm"
+
+| Điều kiện | Hành động |
+|---|---|
+| `iteration ≥ max_iterations` (mặc định 10) | `status: BLOCKED` — hết ngân sách |
+| `no_progress ≥ 3` (3 vòng không đổi file) | BLOCKED — nghi spec sai/thiếu thông tin |
+| `same_error.count ≥ 3` | BLOCKED — liệt kê cách đã thử |
+| Cần quyết định thiết kế ngoài spec / thiếu tool / story quá lớn | BLOCKED ngay, không auto-retry |
+| Sửa nội dung rubric, xoá/skip test, `.only`, xoá assert cho xanh | Vi phạm → revert, ghi `progress.md`. Sửa test hợp lệ phải ghi lý do |
+
+BLOCKED = ghi `state.json`, report, dừng. Không re-dispatch mù, không nới rubric.
+
+## Report (1 lần, cuối)
+
+- R đạt/chưa đạt, số vòng, test thêm/sửa, danh sách commit.
+- Lệnh verify cuối + output thật (exit code, số pass/fail) + verdict reviewer nguyên văn.
+- BLOCKED → kẹt ở đâu, đã thử gì, cần gì từ user.
+- APPROVE → learnings tái dùng chuyển vào memory/CLAUDE.md vùng liên quan, rồi xoá `.claude/state/loop-<slug>/`.
