@@ -3,3 +3,4 @@ audit/audit.log
 audit/*.log
 test/.tmp-audit*.log
 test/*.log
+/.browser-profiles/
