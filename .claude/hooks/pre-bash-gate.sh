@@ -149,12 +149,15 @@ if [ -r "$pb_list" ] && printf '%s\n' "$cmd" | grep -Eq '(^|[;&|]|[[:space:]])gi
       # remote = từ đầu tiên không bắt đầu bằng '-' sau "push"
       pb_target=$(printf '%s' "$seg" | sed -E 's/.*[[:space:]]push[[:space:]]+//' | tr ' ' '\n' | grep -v '^-' | head -1)
       [ -n "$pb_target" ] || continue
-      [ "$pb_target" = "$pb_remote" ] && continue
-      case "$pb_target" in *"$pb_url"*) continue ;; esac
+      case "|$pb_remote|" in *"|$pb_target|"*) continue ;; esac
+      # tên remote → URL (vd origin = imba) rồi so substring với BẤT KỲ đích nào trong pb_url (a|b)
+      pb_turl=$(git -C "${CLAUDE_PROJECT_DIR:-.}" remote get-url "$pb_target" 2>/dev/null || printf '%s' "$pb_target")
+      _ok=0; for _u in ${pb_url//|/ }; do case "$pb_turl" in *"$_u"*) _ok=1 ;; esac; done
+      [ "$_ok" = 1 ] && continue
       if printf '%s' "$seg" | grep -Eq "(^|[[:space:]:])$pb_br([[:space:]:]|$)|[[:space:]](--all|--mirror|--tags)([[:space:]]|$)"; then
         echo "$(ts) BLOCK private-branch push ($pb_br → $pb_target) agent=${agent_id:-main} → ${cmd:0:120}" >> "$LOG" 2>/dev/null || true
         cat >&2 <<EOF
-🛑 private-branch-gate: nhánh riêng tư "$pb_br" CHỈ push lên remote "$pb_remote" ($pb_url). Lệnh đang push tới "$pb_target".
+🛑 private-branch-gate: nhánh riêng tư "$pb_br" CHỈ push lên remote "$pb_remote" (URL khớp: $pb_url). Lệnh đang push tới "$pb_target".
    Command: ${cmd:0:160}
    Không có bypass. Đúng: GIT_PUSH_GATE_OK=1 git push $pb_remote $pb_br
    Rule: .claude/rules/project/private-branch-kane.md

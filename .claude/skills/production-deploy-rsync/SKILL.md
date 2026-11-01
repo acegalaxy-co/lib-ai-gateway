@@ -29,9 +29,9 @@ KHÔNG nằm trong skill này — đọc từ `.claude/deploy-targets/<target>.m
 tool-call TRƯỚC confirm. Tuần tự bắt buộc: 0 → (1 ‖ 2) → 3 (chờ user) → 4 → 5 → 6 → 7 → 8.
 
 0. **Project guard + load target.**
-   - Project slug kỳ vọng `lib-ai-gateway`; remote identity kỳ vọng `github.com/acegalaxy-co/lib-ai-gateway`.
+   - Project slug kỳ vọng `lib-ai-gateway`; remote identity kỳ vọng `git.imba.co:790/acegalaxy_docs/ace_galaxy/ace_libs/lib-ai-gateway`.
      Tính `basename "$(git rev-parse --show-toplevel)"` (lowercase, non-alnum → `-`) phải khớp slug; sanitize URL remote chính
-     về `host/owner/repo` lowercase (bỏ userinfo, `.git`), KHÔNG in URL gốc, phải khớp chính xác. Lệch, `github.com/acegalaxy-co/lib-ai-gateway`
+     về `host/owner/repo` lowercase (bỏ userinfo, `.git`), KHÔNG in URL gốc, phải khớp chính xác. Lệch, `git.imba.co:790/acegalaxy_docs/ace_galaxy/ace_libs/lib-ai-gateway`
      còn dạng placeholder (`<...>`), hoặc không parse được → STOP, không có override.
    - `$ARGUMENTS` rỗng → STOP, liệt kê file có trong `.claude/deploy-targets/` rồi hỏi target.
    - Đọc `.claude/deploy-targets/<target>.md`. **Thiếu file hoặc còn placeholder `<...>` ở field bắt buộc** → STOP,

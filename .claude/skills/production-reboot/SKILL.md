@@ -27,7 +27,7 @@ out-of-band** qua API/console của provider.
 ## Các bước
 
 0. **Project guard — verify repo identity trước mọi hành động SSH/cloud/git trên production.**
-   - Project slug kỳ vọng: `lib-ai-gateway`; remote identity kỳ vọng: `github.com/acegalaxy-co/lib-ai-gateway`
+   - Project slug kỳ vọng: `lib-ai-gateway`; remote identity kỳ vọng: `git.imba.co:790/acegalaxy_docs/ace_galaxy/ace_libs/lib-ai-gateway`
      (đã sanitize `host/owner/repo`, lowercase; deploy host `<deploy-ssh-host>`, service `<service-name>`).
    - Tính repo-root slug từ `basename "$(git rev-parse --show-toplevel)"` (lowercase,
      non-alnum → `-`) và yêu cầu nó khớp `lib-ai-gateway`.
@@ -44,9 +44,9 @@ out-of-band** qua API/console của provider.
    - Sanitize URL của remote chính về lowercase `host/owner/repo`: hỗ trợ `git@host:org/repo.git`,
      `https://[userinfo@]host/org/repo.git`, và `ssh://[userinfo@]host/org/repo.git`; strip userinfo,
      leading slash, và trailing `.git`.
-   - Yêu cầu sanitized remote-chính identity khớp CHÍNH XÁC `github.com/acegalaxy-co/lib-ai-gateway`. Nếu `github.com/acegalaxy-co/lib-ai-gateway`
+   - Yêu cầu sanitized remote-chính identity khớp CHÍNH XÁC `git.imba.co:790/acegalaxy_docs/ace_galaxy/ace_libs/lib-ai-gateway`. Nếu `git.imba.co:790/acegalaxy_docs/ace_galaxy/ace_libs/lib-ai-gateway`
      có dạng placeholder (`<...>`), remote chính không parse được, repo-root slug không khớp, hoặc remote identity
-     không khớp → STOP ngay; báo user rằng command này thuộc về `lib-ai-gateway` / `github.com/acegalaxy-co/lib-ai-gateway`,
+     không khớp → STOP ngay; báo user rằng command này thuộc về `lib-ai-gateway` / `git.imba.co:790/acegalaxy_docs/ace_galaxy/ace_libs/lib-ai-gateway`,
      repo/root/remote chính hiện tại là `<repo identity>` — không chạy reboot. Không có override.
    - Nếu bất kỳ config nào command này dùng vẫn còn dạng placeholder (`<...>`) — `<deploy-ssh-host>`, `<service-name>` — STOP;
      deploy config chưa đầy đủ (chạy lại install.sh với biến env HARNESS_DEPLOY_*).
