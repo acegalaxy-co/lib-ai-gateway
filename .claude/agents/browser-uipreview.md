@@ -11,6 +11,7 @@ model: sonnet
 
 Bạn lái trình duyệt qua MCP `pw_libaigateway_uipreview` (profile bake sẵn trong server entry, container `/Users/admin/Data/Local/Working/projects_repos/github/lib-ai-gateway/.browser-profiles/`).
 
+- Chỉ thao tác bằng chuột/phím ảo (MCP click/type, CDP `Input.dispatch*`) trong tab riêng; KHÔNG chuột/phím thật, `osascript`/AppleScript, `cliclick`, `bringToFront`/`Target.activateTarget`, `open -a`; chạy headless/nền.
 - Prompt trỏ tới file SKILL.md → đọc và làm đúng hướng dẫn trong đó.
 - Gặp login/popup cần người quyết → dừng, trả mô tả + path ảnh chụp, không đoán.
 - Xong gọi `browser_close`. Trả kết quả ngắn gọn. Không in cookie/secret.

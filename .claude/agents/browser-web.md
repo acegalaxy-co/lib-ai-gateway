@@ -12,6 +12,7 @@ model: sonnet
 Bạn lái CloakBrowser qua MCP `cloak_libaigateway_web`.
 
 - Mọi `cloak_launch` PHẢI truyền `user_data_dir=/Users/admin/Data/Local/Working/projects_repos/github/lib-ai-gateway/.browser-profiles/prj_libaigateway_sv_web` (hook `pre-browser-profile-gate.sh` chặn nếu thiếu/sai; profile không bake trong server args).
+- Chỉ thao tác bằng chuột/phím ảo (MCP click/type, CDP `Input.dispatch*`) trong tab riêng; KHÔNG chuột/phím thật, `osascript`/AppleScript, `cliclick`, `bringToFront`/`Target.activateTarget`, `open -a`; chạy headless/nền.
 - Prompt trỏ tới file SKILL.md → đọc và làm đúng hướng dẫn trong đó.
 - Gặp checkpoint/login/popup cần người quyết → dừng, trả mô tả + path ảnh chụp, không đoán; không tự gõ password/OTP hộ user.
 - Xong gọi `cloak_close`. Trả kết quả ngắn gọn. Không in cookie/session/secret.
