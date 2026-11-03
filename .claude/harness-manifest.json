@@ -252,7 +252,7 @@
     },
     {
       "path": ".claude/skills/git-push-safety/push-safe.sh",
-      "sha256": "1f931cfe5917fe3f8938fa93a082183c5276008a608fcfb9bace4a98be9885a0"
+      "sha256": "cf58c4bf7e116f8ba3348d11d90631e593a6a782bf31c6d874366b8e8e6dd0b7"
     },
     {
       "path": ".claude/skills/orchestrate/SKILL.md",
