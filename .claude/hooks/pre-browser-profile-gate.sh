@@ -88,6 +88,21 @@ launches_playwright_mcp() {
   return 1
 }
 
+# real_input <cmd> → 0 nếu có segment điều khiển chuột/phím THẬT (cướp input của dev).
+# Rule: ~/.claude/CLAUDE.md "Browser tự động" — chỉ dùng chuột/phím ảo (CDP/Playwright).
+real_input() {
+  local seg
+  while IFS= read -r seg; do
+    seg="${seg#"${seg%%[![:space:]]*}"}"
+    # cliclick phải kèm action (c:, kp:, t:...) — chữ "cliclick" trơn trong text/heredoc không chặn.
+    echo "$seg" | grep -Eq '^([^[:space:]]*/)?cliclick([[:space:]]+-[^[:space:]]+([[:space:]]+[0-9]+)?)*[[:space:]]+(c|dc|rc|tc|m|dd|du|dm|kd|ku|kp|t|w):' && return 0
+    case "$seg" in
+      osascript*) echo "$seg" | grep -Eqi 'System Events.*(keystroke|key code|click)' && return 0 ;;
+    esac
+  done < <(printf '%s\n' "$1" | sed -E 's/[;|&()`]/\n/g')
+  return 1
+}
+
 # verdict <tool_name> <cmd> <user_data_dir> → ALLOW hoặc "BLOCK:<reason>"
 verdict() {
   local tool="$1" cmd="${2:-}" user_data_dir="${3:-}" server expected
@@ -124,6 +139,10 @@ verdict() {
   # ── Bash launch Playwright MCP ──────────────────────────────────────
   # Cloak không bind profile qua CLI; gate nó tại tool cloak_launch ở trên.
   if [ "$tool" = "Bash" ] && [ -n "$cmd" ]; then
+    if real_input "$cmd"; then
+      echo "BLOCK:chuột/phím thật (cliclick / osascript System Events) — dùng chuột/phím ảo CDP Input.dispatch* / Playwright click/keyboard."
+      return
+    fi
     if launches_playwright_mcp "$cmd"; then
       # phải có --user-data-dir=...prj_<xx>_sv_<yy>
       if [[ "$cmd" =~ --user-data-dir=([^[:space:]]+) ]] && valid_profile_dir "${BASH_REMATCH[1]}" "${BASH_REMATCH[1]##*/}" && [[ "${BASH_REMATCH[1]##*/}" =~ ^$RE_PROFILE$ ]]; then
@@ -175,6 +194,15 @@ if [ "${1:-}" = "--self-test" ]; then
   check ALLOW  "Bash" "grep -rn playwright ."       # chỉ nhắc tên
   check ALLOW  "Bash" "git commit -m 'playwright mcp notes'"
   check BLOCK  "Bash" "FOO=1 npx @playwright/mcp"
+  check BLOCK  "Bash" "cliclick c:100,200"
+  check BLOCK  "Bash" "sleep 1; /opt/homebrew/bin/cliclick kp:return"
+  check BLOCK  "Bash" "osascript -e 'tell application \"System Events\" to keystroke \"a\"'"
+  check ALLOW  "Bash" "osascript -e 'display notification \"done\"'"
+  check ALLOW  "Bash" "grep -rn cliclick ."
+  check ALLOW  "Bash" 'python3 - <<EOF
+L="KHÔNG `cliclick`, `osascript`"
+EOF'
+  check BLOCK  "Bash" "cliclick -w 50 kp:return"
   check ALLOW  "Bash" "ls -la"                    # bash thường
   [ "$fail" = 0 ] && echo "self-test PASS" || { echo "self-test FAIL"; exit 1; }
   exit 0
