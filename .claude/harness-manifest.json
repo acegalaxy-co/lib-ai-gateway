@@ -368,7 +368,7 @@
     },
     {
       "path": "scripts/delegate/run-codex.sh",
-      "sha256": "525de7f53fd9068cb304142ac6a7447ad6469a13b11f9e0d23ad100bf3262ce4"
+      "sha256": "97fc81e1b6ba91b6cede8e332afedc32091b9242bdaa7fa0ec522783400675a6"
     },
     {
       "path": "scripts/delegate/run-gemini.sh",
@@ -419,7 +419,7 @@
   },
   "modelDefaults": {
     "gemini": "gemini-3.1-pro-preview",
-    "codex": "gpt-5.6-terra",
+    "codex": "gpt-6.1-terra",
     "deepseek": "openai/ds/deepseek-v4-pro"
   },
   "settings": {

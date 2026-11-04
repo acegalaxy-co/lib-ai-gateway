@@ -57,7 +57,7 @@ else
     echo "ERROR: no Codex auth found — set OPENAI_API_KEY or run 'codex login'" >&2
     exit 1
   fi
-  CODEX_MODEL="${CODEX_MODEL:-gpt-5.6-terra}"
+  CODEX_MODEL="${CODEX_MODEL:-gpt-6.1-terra}"
   CODEX_REASONING_EFFORT="${CODEX_REASONING_EFFORT:-high}"
   # Ép provider built-in "openai": config.toml global có thể đặt model_provider khác (vd 9router local).
   CODEX_PROVIDER_ARGS=(-c 'model_provider="openai"' -m "$CODEX_MODEL" -c "model_reasoning_effort=\"${CODEX_REASONING_EFFORT}\"")
