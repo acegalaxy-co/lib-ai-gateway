@@ -11,6 +11,10 @@
       "sha256": "195a94420da384aa7b28b29279bdd3af3a4a6db2204a11fa8dcf91a98f3bb043"
     },
     {
+      "path": ".claude/agents/delegate-codex.md",
+      "sha256": "8e693c4e0a1e7d2ea12b0f485f4f56eae16b04c5383b2bfb545a5440a29a9e9f"
+    },
+    {
       "path": ".claude/agents/delegate-deepseek.md",
       "sha256": "40c33f0cc0071feaa81150092c214b565fe34c22cfccb0efe0128fa3fd1e3df0"
     },
@@ -373,7 +377,6 @@
   ],
   "preservePaths": [
     ".claude/agents/browser-uipreview.md",
-    ".claude/agents/delegate-codex.md",
     ".claude/allowed-hosts.txt",
     ".claude/hooks/pre-compact-guard.sh",
     ".claude/hooks/pre-edit-content-scan.sh",
