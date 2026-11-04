@@ -26,13 +26,13 @@ harden_cli_env
 # PROXY_9ROUTER_TOKEN + PROXY_9ROUTER_BASE_URL alone decides routing, no opt-in
 # flag. route cx/* qua 9router responses API bằng Codex `-c` inline provider
 # override (ephemeral — KHÔNG đụng ~/.codex/config.toml global).
-# Model map: cx/gpt-5.6-sol = strongest, cx/gpt-6.1-terra = balanced,
+# Model map: cx/gpt-6.1-sol = strongest, cx/gpt-6.1-terra = balanced,
 # cx/gpt-6-luna = default fast. Reasoning default high. Token qua env_key ref, KHÔNG qua argv.
 CODEX_PROVIDER_ARGS=()
 if [[ -n "${PROXY_9ROUTER_TOKEN:-}" && -n "${PROXY_9ROUTER_BASE_URL:-}" ]]; then
   export PROXY_CODEX_9R_KEY="$PROXY_9ROUTER_TOKEN"   # env_key ref — token never in argv
   # Default fast Codex model + high reasoning. Override qua PROXY_CODEX_MODEL / CODEX_REASONING_EFFORT.
-  # cx/gpt-5.6-sol strongest; cx/gpt-6.1-terra balanced; cx/gpt-6-luna default fast.
+  # cx/gpt-6.1-sol strongest; cx/gpt-6.1-terra balanced; cx/gpt-6-luna default fast.
   CODEX_MODEL="${PROXY_CODEX_MODEL:-cx/gpt-6-luna}"
   CODEX_REASONING_EFFORT="${CODEX_REASONING_EFFORT:-high}"
   CODEX_PROVIDER_ARGS=(

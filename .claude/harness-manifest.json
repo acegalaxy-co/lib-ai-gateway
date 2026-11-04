@@ -40,7 +40,7 @@
     },
     {
       "path": ".claude/hooks/pre-bash-gate.sh",
-      "sha256": "8ab41f9811ddab09a65a3be4cb6e17c752ee0716bd4f50c538c802f77c9cbcaa"
+      "sha256": "e24e7617d47222e1f2a1e01f9b3e1c86c9a548f85f77a5675dc2ff6e8db8d54a"
     },
     {
       "path": ".claude/hooks/pre-browser-profile-gate.sh",
@@ -92,7 +92,7 @@
     },
     {
       "path": ".claude/rules/common/general.md",
-      "sha256": "776734d0c6170113a86815ee089830be92e83b71a20060898b8981bcfce752be"
+      "sha256": "38717f81cfff3f2c5efdb26690b29673d981c4d4c5199aab50a77fdf6d452f4f"
     },
     {
       "path": ".claude/rules/common/git-conventions.md",
@@ -104,7 +104,7 @@
     },
     {
       "path": ".claude/rules/common/orchestrator.md",
-      "sha256": "c76e0b67ae88a0d5ffff1e675e571955586154e3bb228a1887524f1dbb9be5c0"
+      "sha256": "8d09724e083842dd7dcd45ab2869788967c90add250291f24d975ae751711e66"
     },
     {
       "path": ".claude/rules/common/rbac-security.md",
@@ -144,11 +144,11 @@
     },
     {
       "path": ".claude/skills/ace-gen-image/SKILL.md",
-      "sha256": "6ebdf8651c6c2ed7b63ab3392f7ae5d960af7dc00f4944d588722b48832ade91"
+      "sha256": "aab1e88a94fe90080066cacce4c131975bad30e77d3a480d30ef958338d45421"
     },
     {
       "path": ".claude/skills/ace-gen-image/gen.py",
-      "sha256": "a9fa88b601bf2fafd1c6138c4a66d01bb8f853fc7c14ad6fc2dfe245e6ae5d74"
+      "sha256": "bca8230de1162f07d421cbc10fa0986ca7e5e98d57d24c3924082fc364d1236b"
     },
     {
       "path": ".claude/skills/ace-library/SKILL.md",
@@ -248,11 +248,11 @@
     },
     {
       "path": ".claude/skills/git-push-safety/SKILL.md",
-      "sha256": "b89d6059682a6fc46bf78f39b11e24450d8dd10ed6e81dfa7b74bc4893bc6aea"
+      "sha256": "e4fb68813b090a4c5c621d09e1c81ae6797652627cf2cb4c5af06ea374ebab9c"
     },
     {
       "path": ".claude/skills/git-push-safety/push-safe.sh",
-      "sha256": "e0d672e796cf8074a04fb977b27c0e445c477e6e13a8dc1872b6d9a749b99097"
+      "sha256": "13705af8d641047e000827427ca3236e372285ac5dc5305456d78e5d14e1e3c4"
     },
     {
       "path": ".claude/skills/orchestrate/SKILL.md",
@@ -364,7 +364,7 @@
     },
     {
       "path": "scripts/delegate/run-codex.sh",
-      "sha256": "7e863dfd15f83125efad71fd46ea077e74383990efd1a3c61d8ac8833f265b15"
+      "sha256": "525de7f53fd9068cb304142ac6a7447ad6469a13b11f9e0d23ad100bf3262ce4"
     },
     {
       "path": "scripts/delegate/run-gemini.sh",

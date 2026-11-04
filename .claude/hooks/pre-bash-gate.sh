@@ -126,25 +126,99 @@ protected_guard
 [ "$harness_off" = 1 ] && exit 0
 
 # ── 1) git-push gate (everyone) ─────────────────────────────────────────────
-# Allow: `[cd <repo> &&] sh|bash [<path>/].claude/skills/git-push-safety/push-safe.sh <remote> <branch>`
-# — script chạy đủ scan (gitleaks + test + sensitive-patterns + file lớn/cấm +
-# detect RBAC/deploy-surface/README) rồi tự push, KHÔNG cần confirm (user đã
-# chốt). Chỉ cho qua khi KHÔNG nối thêm `git push` thô trong cùng lệnh.
-raw_push_re='(^|[;&|]|[[:space:]])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-]+)?)*[[:space:]]+push([[:space:]]|$)'
-push_safe_re='^[[:space:]]*(cd[[:space:]]+[^;&|]+&&[[:space:]]*)?([A-Z_][A-Z0-9_]*=[^[:space:];&|]*[[:space:]]+)*(sh|bash)[[:space:]]+([^[:space:];&|]*/)?\.claude/skills/git-push-safety/push-safe\.sh([[:space:]]|$)'
-if printf '%s' "$cmd" | grep -Eq "$push_safe_re" \
-   && ! printf '%s' "$cmd" | grep -Eq "$raw_push_re" \
-   && ! printf '%s' "$cmd" | grep -Eq 'GIT_PUSH_GATE_OK=1'; then
+# B1: STRICT whole-command whitelist (not a loose prefix regex) — the
+# command must be EXACTLY (byte-for-byte, after stripping the one allowed
+# "cd <dir> && " / env prefix) one of:
+#   [cd <abs-project-dir-or-cwd> && ] [PUSH_SAFE_PROXY_JUMP=<token> ] \
+#     (sh|bash) [<proj-dir>/].claude/skills/git-push-safety/push-safe.sh \
+#     [--full ][--scan-only ]<remote> <branch>
+# No newline, no shell metacharacters, nothing appended after <branch>.
+# If this does not match EXACTLY, fall through to the raw-push block below
+# (B3: no path escape — only the literal relative path or an absolute path
+# anchored at $CLAUDE_PROJECT_DIR/cwd is ever accepted; B1: no stacked
+# command, no arbitrary env tolerance besides PUSH_SAFE_PROXY_JUMP).
+push_safe_allow() {
+  local c="$1" cwd_in="$2" rest dir tail envval script abs1 abs2 full_seen=0 scanonly_seen=0 remote branch
+  case "$c" in *$'\n'*) return 1 ;; esac
+  rest="$c"
+  case "$rest" in
+    "cd "*)
+      tail="${rest#cd }"
+      case "$tail" in *" && "*) : ;; *) return 1 ;; esac
+      dir="${tail%%" && "*}"
+      rest="${tail#*" && "}"
+      [ -n "$dir" ] || return 1
+      case "$dir" in *[\;\&\|\`\$\(\)\<\>\"\'\\[:space:]]*) return 1 ;; esac
+      if [ "$dir" != "${CLAUDE_PROJECT_DIR:-__none__}" ] && [ "$dir" != "${cwd_in:-__none__}" ]; then
+        return 1
+      fi
+      ;;
+  esac
+  case "$rest" in
+    "PUSH_SAFE_PROXY_JUMP="*" "*)
+      envval="${rest#PUSH_SAFE_PROXY_JUMP=}"; envval="${envval%%" "*}"
+      case "$envval" in *[!A-Za-z0-9._@-]*) return 1 ;; esac
+      [ -n "$envval" ] || return 1
+      rest="${rest#*" "}"
+      ;;
+  esac
+  case "$rest" in
+    "sh "*) rest="${rest#sh }" ;;
+    "bash "*) rest="${rest#bash }" ;;
+    *) return 1 ;;
+  esac
+  script=".claude/skills/git-push-safety/push-safe.sh"
+  abs1=""; [ -n "${CLAUDE_PROJECT_DIR:-}" ] && abs1="${CLAUDE_PROJECT_DIR%/}/$script"
+  abs2=""; [ -n "$cwd_in" ] && abs2="${cwd_in%/}/$script"
+  case "$rest" in
+    "$script "*) rest="${rest#"$script" }" ;;
+    "$abs1 "*) [ -n "$abs1" ] && rest="${rest#"$abs1" }" || return 1 ;;
+    "$abs2 "*) [ -n "$abs2" ] && rest="${rest#"$abs2" }" || return 1 ;;
+    *) return 1 ;;
+  esac
+  while :; do
+    case "$rest" in
+      "--full "*) [ "$full_seen" = 1 ] && return 1; full_seen=1; rest="${rest#--full }" ;;
+      "--scan-only "*) [ "$scanonly_seen" = 1 ] && return 1; scanonly_seen=1; rest="${rest#--scan-only }" ;;
+      *) break ;;
+    esac
+  done
+  case "$rest" in *" "*) : ;; *) return 1 ;; esac
+  remote="${rest%% *}"
+  branch="${rest#* }"
+  case "$remote" in ''|*[!A-Za-z0-9._/-]*) return 1 ;; esac
+  case "$branch" in ''|*[!A-Za-z0-9._/-]*) return 1 ;; esac
+  return 0
+}
+
+cwd_for_gate=$(printf '%s' "$payload" | jq -r '.cwd // empty')
+if push_safe_allow "$cmd" "$cwd_for_gate"; then
   push_safe_ok=1
 else
   push_safe_ok=0
 fi
+
+# Extended raw-push detection (quotes/backslashes stripped first so `"git"
+# push`, `` `git push` `` etc normalize to plain text) — catches `/git push`,
+# `(git push`, `$(git push`, `command|env|xargs git push`, besides the
+# plain/chained forms already covered.
+cmd_rawchk=$(printf '%s' "$cmd" | sed -e "s/[\"'\\\\]//g")
+raw_push_re='(^|[;&|]|[[:space:]]|[/(]|\$\()[[:space:]]*((command|env|xargs)[[:space:]]+(-[^[:space:]]+[[:space:]]+)*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*)?git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-]+)?)*[[:space:]]+push([[:space:]]|$|[;&|)`])'
 if [ "$push_safe_ok" = 0 ] && ! echo "$cmd" | grep -Eq 'GIT_PUSH_GATE_OK=1'; then
-  if echo "$cmd" | grep -Eq "$raw_push_re"; then
+  if printf '%s' "$cmd_rawchk" | grep -Eq "$raw_push_re"; then
     echo "🚨 pre-bash-git-push-gate: raw 'git push' bị chặn." >&2
     echo "Chạy: cd <repo> && sh .claude/skills/git-push-safety/push-safe.sh <remote> <branch>" >&2
     echo "  (tự chạy đủ scan: gitleaks + test + sensitive-patterns + file lớn/cấm + detect RBAC/deploy-surface, rồi tự push — KHÔNG cần confirm)." >&2
     echo "GIT_PUSH_GATE_OK=1 git push ... là bypass USER-ORDERED ONLY — agent không tự dùng thay push-safe.sh." >&2
+    exit 2
+  fi
+  # Lệnh có nhắc tới push-safe.sh nhưng KHÔNG khớp whitelist chặt (B1) —
+  # vd stacked `; git push`, env prefix lạ, path ngoài .claude/skills,
+  # nhiều dòng — chặn luôn, không suy diễn là an toàn.
+  if printf '%s' "$cmd" | grep -Fqi 'push-safe.sh'; then
+    echo "🚨 pre-bash-git-push-gate: lệnh nhắc tới push-safe.sh nhưng KHÔNG khớp đúng dạng cho phép (B1 strict whitelist)." >&2
+    echo "Đúng dạng: [cd <repo> && ] sh|bash .claude/skills/git-push-safety/push-safe.sh [--full] [--scan-only] <remote> <branch>" >&2
+    echo "  — một dòng, không nối thêm lệnh khác, không prefix env lạ, không đổi path. Command: ${cmd:0:160}" >&2
     exit 2
   fi
 fi
@@ -164,8 +238,10 @@ if [ -r "$pb_list" ] && printf '%s\n' "$cmd" | grep -Eq '(^|[;&|]|[[:space:]])gi
       pb_target=$(printf '%s' "$seg" | sed -E 's/.*[[:space:]]push[[:space:]]+//' | tr ' ' '\n' | grep -v '^-' | head -1)
       [ -n "$pb_target" ] || continue
       case "|$pb_remote|" in *"|$pb_target|"*) continue ;; esac
-      # tên remote → URL (vd origin = imba) rồi so substring với BẤT KỲ đích nào trong pb_url (a|b)
-      pb_turl=$(git -C "${CLAUDE_PROJECT_DIR:-.}" remote get-url "$pb_target" 2>/dev/null || printf '%s' "$pb_target")
+      # tên remote → MỌI push URL đã cấu hình (W4: --push --all, không chỉ URL đầu)
+      # rồi so substring với BẤT KỲ đích nào trong pb_url (a|b)
+      pb_turl=$(git -C "${CLAUDE_PROJECT_DIR:-.}" remote get-url --push --all "$pb_target" 2>/dev/null \
+        || git -C "${CLAUDE_PROJECT_DIR:-.}" remote get-url "$pb_target" 2>/dev/null || printf '%s' "$pb_target")
       _ok=0; for _u in ${pb_url//|/ }; do case "$pb_turl" in *"$_u"*) _ok=1 ;; esac; done
       [ "$_ok" = 1 ] && continue
       if printf '%s' "$seg" | grep -Eq "(^|[[:space:]:])$pb_br([[:space:]:]|$)|[[:space:]](--all|--mirror|--tags)([[:space:]]|$)"; then

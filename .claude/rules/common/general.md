@@ -40,6 +40,7 @@ Quy tắc chung, áp MỌI supplier (danh sách mở, không giới hạn: Anthr
 - Lệnh phải idempotent: chạy lại không nhân đôi dòng (vd `grep -q '^KEY=' f || echo 'KEY=…' >> f`, hoặc thay thế nếu đã có). Kèm bước nạp lại nếu cần (restart service, `--update-env`).
 - Giá trị là secret mà AI không biết → để placeholder `<điền-token>` rõ ràng, KHÔNG tự đọc/in secret ([[secrets-no-printout]]).
 - **Mọi lệnh đưa user copy chạy** (chat, docs, skill, README) PHẢI chạy được từ bất kỳ thư mục nào: mở đầu `cd <path tuyệt đối repo> && …` hoặc gọi script bằng path tuyệt đối. KHÔNG viết path tương đối trần kiểu `bash install.sh` — terminal user không đứng sẵn trong repo.
+- **Lệnh giao user tự chạy → kèm link click là chạy** trong terminal VS Code: `node /Users/admin/Data/Local/Working/projects_repos/_hub/.claude/skills/ace-cmd-link/link.mjs '<lệnh>'` → `[▶ Tên việc](<link>)`, giữ code block ngay dưới để user đọc lệnh. Việc agent tự chạy được thì vẫn tự chạy. Chỉ user click mới chạy: agent KHÔNG tự `open` link để lách lệnh bị chặn.
 
 ## Link → luôn clickable
 

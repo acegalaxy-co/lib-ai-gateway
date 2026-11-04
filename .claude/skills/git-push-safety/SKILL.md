@@ -1,29 +1,47 @@
 ---
 name: git-push-safety
-description: "Chạy test, gitleaks (chỉ commit sắp push), sensitive-content scan; chỉ push nếu cả 3 pass — qua script `push-safe.sh`, không hỏi confirm. `--scan-only` chỉ scan, không test/push; `--full` quét toàn bộ history. Dùng khi \"audit git leak\", \"check leak trước khi push\", hoặc trước mọi lệnh push GitHub."
+description: "Chạy test, gitleaks (chỉ commit sắp push), sensitive-content scan; chỉ push nếu cả 3 pass — qua script `push-safe.sh`, không hỏi confirm (CHỈ remote git.imba.co). `--scan-only` chỉ scan + ghi evidence, không push; `--full` quét toàn bộ history. Dùng khi \"audit git leak\", \"check leak trước khi push\", hoặc trước mọi lệnh push GitHub."
 disable-model-invocation: true
 user-invocable: true
 ---
-> **Push KHÔNG cần hỏi confirm (user đã chốt):** chế độ push = chạy script
-> `push-safe.sh` bên dưới — script tự chạy đủ bước 1–3 + kiểm file lớn/cấm, pass mới push,
-> rồi verify `ls-remote`. Không hỏi user trước khi push. Vẫn cấm force-push / `--all` /
-> `--mirror` / `--tags`, vẫn tôn trọng gate nhánh riêng tư (`.claude/private-branches.txt`).
+> **Push KHÔNG cần hỏi confirm — CHỈ khi remote là imba (`git.imba.co`):** chế độ
+> push = chạy script `push-safe.sh` bên dưới — script tự chạy đủ bước 1–3 + kiểm
+> file lớn/cấm, pass mới push, rồi verify `ls-remote`. Remote KHÔNG phải imba
+> (`github`, `kane`, …) → script tự STOP, không push, báo user tự chạy lại với
+> `PUSH_SAFE_ALLOW_NONIMBA=1` (agent không tự thêm prefix này — hook chỉ cho qua
+> lệnh trần, không cho nối env tuỳ ý). Sau khi đã push imba, HỎI user trước khi
+> push remote khác. Vẫn cấm force-push / `--all` / `--mirror` / `--tags`, vẫn
+> tôn trọng gate nhánh riêng tư (`.claude/private-branches.txt`).
 > Hành động phá huỷ khác (xoá branch/remote, rewrite history, force-push): gọi lệnh không phải là xác nhận —
 > liệt kê target + tác động, hỏi user xác nhận rõ và chờ.
 
 ## Cách chạy (mặc định) — `push-safe.sh`
 
 ```bash
-cd <repo tuyệt đối> && sh .claude/skills/git-push-safety/push-safe.sh [--full] <remote> <branch>
+cd <repo tuyệt đối> && sh .claude/skills/git-push-safety/push-safe.sh [--full] [--scan-only] <remote> <branch>
 ```
 
-- Hook `pre-bash-gate.sh` cho qua đúng lệnh này (không nối thêm `git push` thô); raw `git push` vẫn bị chặn.
-- Script: chặn flag nguy hiểm → gate nhánh riêng tư → gitleaks có cài → test auto-detect → gitleaks phạm vi push
-  (để `.git/hooks/pre-push` quét nếu hook harness đã cài, không quét 2 lần) + diff chưa commit → `sensitive-patterns.txt`
-  → file ≥ 95 MB / `.env*`/key tracked → detect RBAC/deploy-surface/README (in ra, agent PHẢI đọc + làm bước 3.5–3.7 nếu
-  báo DETECTED) → push → verify `ls-remote` = SHA. Remote diverged (non-fast-forward) → STOP, không force.
-- Push không kết nối được + đặt `PUSH_SAFE_PROXY_JUMP=<host>` → tự thử lại 1 lần qua `ssh -o ProxyJump=<host>`.
-- Nhiều branch/remote → gọi script lần lượt từng `<remote> <branch>` (remote chính trước).
+- Hook `pre-bash-gate.sh` chỉ cho qua ĐÚNG lệnh này (whitelist chặt theo từng ký tự —
+  không stack thêm lệnh, không prefix env lạ, không đổi path script); raw `git push`
+  (mọi biến thể: `/usr/bin/git push`, `(git push`, `"git" push`, `$(git push`,
+  `command|env|xargs git push`, …) vẫn bị chặn.
+- Script: chặn flag nguy hiểm → gate nhánh riêng tư (khớp theo TÊN remote hoặc theo
+  MỌI push URL đã cấu hình) → gitleaks có cài → test auto-detect (+ luôn chạy
+  `tools/*.test.sh` / `node --test tools/*.test.mjs` nếu có) → gitleaks phạm vi push
+  LUÔN chạy ở đây (không delegate cho `.git/hooks/pre-push`) + diff chưa commit
+  (WARN file > 10 MB mà gitleaks bỏ qua, không im lặng) → `sensitive-patterns.txt`
+  (grep lỗi thật → STOP, không coi là "không match") → file ≥ 95 MB / `.env*`/key
+  tracked → detect RBAC/deploy-surface/README (in ra, agent PHẢI đọc + làm bước
+  3.5–3.7 nếu báo DETECTED) → **remote phải là imba** (`git.imba.co`), không thì
+  STOP → push đúng SHA đã scan (`git push --no-follow-tags <remote>
+  <sha>:refs/heads/<branch>`, re-check nhánh chưa bị di chuyển ngay trước khi
+  push) → verify `ls-remote` = SHA → ghi evidence `.claude/state/scan-ok-<sha>`
+  (chỉ sau khi verify pass). Remote diverged (non-fast-forward) → STOP, không force.
+- Push không kết nối được + đặt `PUSH_SAFE_PROXY_JUMP=<host>` (user tự set, charset
+  `[A-Za-z0-9._@-]+`) → tự thử lại 1 lần qua `ssh -o ProxyJump=<host>` — CHỈ cho
+  remote imba.
+- Nhiều branch/remote → gọi script lần lượt từng `<remote> <branch>` (remote chính
+  trước); remote không-imba cần user tự set `PUSH_SAFE_ALLOW_NONIMBA=1` cho lần đó.
 - Bước `/check-hardcode` + đọc diff (bước 3) là phán đoán: diff lớn/lạ → chạy trước khi gọi script.
 
 Các mục dưới mô tả chi tiết từng bước (script đã tự động hoá phần cơ học).
@@ -31,18 +49,15 @@ Các mục dưới mô tả chi tiết từng bước (script đã tự động 
 ## Chế độ `--scan-only`
 
 Khi được gọi với `--scan-only` (hoặc user chỉ muốn check leak, không push):
-chạy CHỈ bước 2 (gitleaks) + bước 3 (sensitive-content scan, gồm
-`/check-hardcode`) bên dưới — 2 bước này song song. Bỏ qua bước 1 (tests), 3.5 (README drift) và
-bước 4 (push). Đây là chế độ read-only — không stage, không commit, không
-push gì. Dùng trước `/git-force-snapshot`, sau `/clean-up-project`, hoặc bất
-cứ khi nào user chỉ muốn xác nhận không có leak. Kết thúc: báo PASS/FAIL
-từng bước đã chạy (2 và 3) kèm finding đã redact.
+script chạy ĐỦ mọi bước cơ học (gate nhánh riêng tư, test, gitleaks, sensitive-patterns,
+file lớn/cấm, detect RBAC/deploy-surface/README) **trừ** gate imba-only và push —
+rồi ghi evidence `.claude/state/scan-ok-<sha>` và dừng, in `SCAN-ONLY OK`. Read-only:
+không stage, không commit, không push gì. Dùng trước `/git-force-snapshot`, sau
+`/clean-up-project`, hoặc bất cứ khi nào user chỉ muốn xác nhận không có leak.
+Có thể kết hợp `--scan-only --full` (quét luôn toàn bộ history, không chỉ phạm vi push).
 
-Bước 1 (tests), 2 (gitleaks), 3 (sensitive scan) **độc lập nhau → chạy song
-song**: gửi chung 1 message 3 Bash tool-call (hoặc `run_in_background` từng
-bước rồi gom). Bất kỳ bước nào fail → DỪNG, không push, báo ĐỦ mọi bước fail
-(không chỉ bước đầu). Bước 3.5 chờ diff từ bước 3; bước 4 chờ cả 1–3.5 pass.
-Không skip bước. Report kết quả từng bước cho user khi hoàn thành.
+Bất kỳ bước nào fail → DỪNG (script tự `exit 1`, không ghi evidence), báo lỗi rõ.
+Không skip bước. Report kết quả cho user khi hoàn thành.
 
 ## 1. Tests
 
