@@ -12,7 +12,7 @@
     },
     {
       "path": ".claude/agents/delegate-codex.md",
-      "sha256": "8e693c4e0a1e7d2ea12b0f485f4f56eae16b04c5383b2bfb545a5440a29a9e9f"
+      "sha256": "d7a486182032dabe43c0315ee9ca1c4371e7a0b478151f5ae37c3558525589d0"
     },
     {
       "path": ".claude/agents/delegate-deepseek.md",
@@ -84,7 +84,7 @@
     },
     {
       "path": ".claude/rules/common/delegate-llm.md",
-      "sha256": "6b51597eed73064f28bad5394c62370bdae4c672f21e5d375a9bee7bebb32f93"
+      "sha256": "5fec58c5772ade8029ca6e39fcb0d9e645b659778940d263d6272357ccc25ff6"
     },
     {
       "path": ".claude/rules/common/deploy-security.md",
@@ -108,7 +108,7 @@
     },
     {
       "path": ".claude/rules/common/orchestrator.md",
-      "sha256": "8d09724e083842dd7dcd45ab2869788967c90add250291f24d975ae751711e66"
+      "sha256": "da7aa6a55fb89f52910f27fbc459146f9db3ef0d3e2b1183d3fea9c944400868"
     },
     {
       "path": ".claude/rules/common/rbac-security.md",
@@ -148,11 +148,11 @@
     },
     {
       "path": ".claude/skills/ace-gen-image/SKILL.md",
-      "sha256": "aab1e88a94fe90080066cacce4c131975bad30e77d3a480d30ef958338d45421"
+      "sha256": "40ba7608e10db51b3feed8c60d85975a80f330a94d0dd287bb9d75408281edef"
     },
     {
       "path": ".claude/skills/ace-gen-image/gen.py",
-      "sha256": "bca8230de1162f07d421cbc10fa0986ca7e5e98d57d24c3924082fc364d1236b"
+      "sha256": "2c8cf9de9201c7f40992260498f4a56e945449a85085d0225a9c78e8817fe3d5"
     },
     {
       "path": ".claude/skills/ace-library/SKILL.md",
@@ -192,7 +192,7 @@
     },
     {
       "path": ".claude/skills/cc-cherrypick2genernal/SKILL.md",
-      "sha256": "41726fe5c3ee337be3145ab091e34f0cbbb7b98c108122f65c955cb914db5d47"
+      "sha256": "d612c019987ea67550b9bd4a20f7083e76385cd81ed6411b10bb095f8cf41213"
     },
     {
       "path": ".claude/skills/check-hardcode/SKILL.md",
@@ -368,7 +368,7 @@
     },
     {
       "path": "scripts/delegate/run-codex.sh",
-      "sha256": "97fc81e1b6ba91b6cede8e332afedc32091b9242bdaa7fa0ec522783400675a6"
+      "sha256": "6d5248c384e829d289b5cf181293830599cb514d3d594765d09d20c8423c6f1c"
     },
     {
       "path": "scripts/delegate/run-gemini.sh",
@@ -419,7 +419,7 @@
   },
   "modelDefaults": {
     "gemini": "gemini-3.1-pro-preview",
-    "codex": "gpt-6.1-terra",
+    "codex": "gpt-5.6-terra",
     "deepseek": "openai/ds/deepseek-v4-pro"
   },
   "settings": {

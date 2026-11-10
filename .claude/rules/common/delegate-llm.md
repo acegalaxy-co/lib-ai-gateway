@@ -28,5 +28,6 @@ Routing chi tiết (size S/M/L, fallback chain) + Mandatory + Anti-patterns: [[o
 
 - Chỉ fallback sang model/provider kế tiếp khi lỗi **tạm thời, phía runtime/provider** (quota, 429, session lock, auth, thiếu binary, timeout). Lỗi tất định trên cùng input (output không parse được schema, spec sai) sẽ fail y hệt ở model sau → sửa prompt/spec, không đổi model (khớp Loop guard trong [[orchestrator]]).
 - Không dùng chính subscription/session Claude đang orchestrate làm runner chính cho job nền dài — đốt 1 session 2 lần + nguy cơ lock; route job đó sang provider hoặc account khác.
+- **Persona Codex không có trên endpoint hiện tại** (`delegate-codex-sol/luna/terra`, model `cx/*` — chỉ có qua 9router): session ở subscription/endpoint không phải router, hoặc lỗi `model_not_found`/404 với model `cx/*` → coi là provider unavailable: dispatch thẳng persona Claude tương ứng (`sol`→`delegate-claude-opus`, `luna`/`terra`→ fallback ghi trong mô tả agent), KHÔNG tính vào 2 lần fallback, KHÔNG STOP. Hook SessionStart `check-router.sh` báo trước khi session không ở router.
 
 > **Project-specific:** wrapper path (`scripts/delegate/`), persona file khai báo trong repo.

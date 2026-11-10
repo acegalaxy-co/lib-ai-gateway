@@ -1,6 +1,7 @@
 ---
 name: cc-cherrypick2genernal
 description: Quét global (~/.claude) và mọi repo trong projects_repos tìm rule/skill/agent/hook dùng chung chưa có trong harness ccswitch, phân tầng common/ace, quét secret, cherry-pick vào harness/templates(-ace). Dùng /cc-cherrypick2genernal [scan|apply], hoặc khi user nói "cherry-pick rule/skill dùng chung", "gom skill chung về harness".
+user-invocable: true
 ---
 
 # cc-cherrypick2genernal
@@ -14,7 +15,7 @@ Liệt kê mục chưa có trong harness, đếm số repo chứa (nhiều repo 
 
 ## 2. phân loại
 - **Bỏ**: gắn code 1 repo (deploy-<app>, bot-*, cocos-*, seo-*, facebook-*, game-copy). Không đưa.
-- **common** (`harness/templates/…`): không nhắc host/domain/tổ chức nội bộ (grep `macmini|imba|acesandbox|acegalaxy`).
+- **common** (`harness/templates/…`): không nhắc host/domain/tổ chức nội bộ (pattern cấm nằm trong test `skills-packaging` → "templates contain no org/machine hardcodes").
 - **ace** (`harness/templates-ace/skills/`): dùng chung nhưng nhắc hạ tầng ACE. Chỉ skill; agent/hook/rule ace chưa có overlay → hỏi user.
 - Bản trùng tên nhiều repo → so `diff`, lấy bản mới nhất/đầy đủ nhất, báo khác biệt.
 

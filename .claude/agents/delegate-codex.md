@@ -41,9 +41,9 @@ Bạn là delegation persona giao task HIGH-REASONING cho `codex` CLI rồi báo
 
 ## Endpoint
 
-- **Auto-detect (giống DeepSeek):** `PROXY_9ROUTER_TOKEN`/`PROXY_9ROUTER_BASE_URL` resolve được (từ `AI_9ROUTER_API_KEY`/`AI_9ROUTER_BASE_URL` trong `ai-proxy/.env.pro`) → wrapper tự inject `-c model_provider=nexus9r` route `cx/*` qua 9router responses API, không cần cờ opt-in riêng. Model override: `PROXY_CODEX_MODEL` (default `cx/gpt-6.1-terra`).
-- **Fallback:** 2 biến trên trống → OpenAI gốc (codex login / `OPENAI_API_KEY`). Default `gpt-6.1-terra`.
-- **Model map:** `gpt-6.1-sol` mạnh nhất (refactor lớn, architecture, bug khó, security, task multi-file dài); `gpt-6.1-terra` cân bằng, default high (feature, bug fix, PR review, test); `gpt-6-luna` nhanh/rẻ nhất cho scope nhỏ (rename, sửa config, test đơn lẻ, tra cứu docs/code). Dùng reasoning `high`/`xhigh`; `max` chỉ khi thật cần.
+- **Auto-detect (giống DeepSeek):** `PROXY_9ROUTER_TOKEN`/`PROXY_9ROUTER_BASE_URL` resolve được (từ `AI_9ROUTER_API_KEY`/`AI_9ROUTER_BASE_URL` trong `ai-proxy/.env.pro`) → wrapper tự inject `-c model_provider=nexus9r` route `cx/*` qua 9router responses API, không cần cờ opt-in riêng. Model override: `PROXY_CODEX_MODEL` (default `cx/gpt-6-luna`).
+- **Fallback:** 2 biến trên trống → OpenAI gốc (codex login / `OPENAI_API_KEY`). Default `gpt-6-luna`.
+- **Model map:** `gpt-6.1-sol` Opus tier (hard reasoning, algorithms, security); `gpt-6-luna` Sonnet tier and generic CLI default (ordinary implementation, high reasoning); `gpt-6.1-terra` Haiku tier (mechanical edits). Dedicated personas set their own model and role: Sol for hard reasoning, Luna for ordinary L/XL implementation, Terra for M-mechanical. Fable uses `cx/gpt-6-astra` in the profile only, not as a coding persona. Keep `PROXY_CODEX_MODEL`/`CODEX_MODEL` overrides; use reasoning `high`/`xhigh`, `max` only when needed.
 
 ## Rules
 

@@ -26,13 +26,13 @@ harden_cli_env
 # PROXY_9ROUTER_TOKEN + PROXY_9ROUTER_BASE_URL alone decides routing, no opt-in
 # flag. route cx/* qua 9router responses API bằng Codex `-c` inline provider
 # override (ephemeral — KHÔNG đụng ~/.codex/config.toml global).
-# Model map: cx/gpt-6.1-sol = strongest, cx/gpt-6.1-terra = balanced,
-# cx/gpt-6-luna = default fast. Reasoning default high. Token qua env_key ref, KHÔNG qua argv.
+# Codex persona map: cx/gpt-6.1-sol = hard reasoning, cx/gpt-6-luna = ordinary
+# implementation and generic CLI default, cx/gpt-6.1-terra = mechanical edits.
+# Reasoning default high. Token qua env_key ref, KHÔNG qua argv.
 CODEX_PROVIDER_ARGS=()
 if [[ -n "${PROXY_9ROUTER_TOKEN:-}" && -n "${PROXY_9ROUTER_BASE_URL:-}" ]]; then
   export PROXY_CODEX_9R_KEY="$PROXY_9ROUTER_TOKEN"   # env_key ref — token never in argv
-  # Default fast Codex model + high reasoning. Override qua PROXY_CODEX_MODEL / CODEX_REASONING_EFFORT.
-  # cx/gpt-6.1-sol strongest; cx/gpt-6.1-terra balanced; cx/gpt-6-luna default fast.
+  # Generic CLI default = Luna/Sonnet-tier. Override qua PROXY_CODEX_MODEL / CODEX_REASONING_EFFORT.
   CODEX_MODEL="${PROXY_CODEX_MODEL:-cx/gpt-6-luna}"
   CODEX_REASONING_EFFORT="${CODEX_REASONING_EFFORT:-high}"
   CODEX_PROVIDER_ARGS=(
@@ -57,7 +57,7 @@ else
     echo "ERROR: no Codex auth found — set OPENAI_API_KEY or run 'codex login'" >&2
     exit 1
   fi
-  CODEX_MODEL="${CODEX_MODEL:-gpt-6.1-terra}"
+  CODEX_MODEL="${CODEX_MODEL:-gpt-5.6-terra}"
   CODEX_REASONING_EFFORT="${CODEX_REASONING_EFFORT:-high}"
   # Ép provider built-in "openai": config.toml global có thể đặt model_provider khác (vd 9router local).
   CODEX_PROVIDER_ARGS=(-c 'model_provider="openai"' -m "$CODEX_MODEL" -c "model_reasoning_effort=\"${CODEX_REASONING_EFFORT}\"")

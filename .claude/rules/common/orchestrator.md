@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Main agent = pure orchestrator; plan-first (lock interface + spec) rồi fan-out ≤20 Sonnet song song; REVISE → SendMessage agent cũ.
+description: Main agent = pure orchestrator; plan-first (lock interface + spec) rồi fan-out ≤20 Sonnet song song; REVISE → SendMessage agent cũ. Fable-main: cấm mọi code kể cả size-S trừ khi user cho phép explicit
 status: live
 updated: 2026-10-10
 paths:
@@ -14,7 +14,7 @@ metadata:
 
 # Orchestrator Mode (cross-project)
 
-**"Opus" trong file này = main agent giữ vai orchestrator**, bất kể model thật (Opus/Fable/Sonnet-main) — vai gắn vào vị trí, không vào tên model.
+**"Opus" trong file này = main agent giữ vai orchestrator**, bất kể model thật (Opus/Fable/Sonnet-main) — vai gắn vào vị trí, không vào tên model. Fable-main chặt hơn: xem section dưới.
 
 Main agent LUÔN là **pure orchestrator** — always-on mọi task, bất kể quota. Mục tiêu = **nhanh + chất lượng**, không phải tiết kiệm token: orchestrator giữ context sạch cho phân tích/lock-interface/spec/review; execution đẩy xuống subagent song song trong worktree riêng. Ranh giới cố định: **size-S** + **reasoning-only** → orchestrator tự làm; mọi execution còn lại → BẮT BUỘC delegate.
 
@@ -106,6 +106,16 @@ Prompt marker (v1, quay lại từ v1.2 — hết cần slug vì mỗi worktree 
   - Trigger: in block sau MỖI event orchestration — dispatch (kèm banner Dispatch visibility mục 1), subagent return, verdict, merge, wave transition. Lý do: VSCode plugin KHÔNG render statusline — block chat là kênh hiển thị chính cho user plugin; statusline chỉ là bonus CLI.
   - GIỮ nguyên: file graph luôn text thuần ở cột status (hook parse text, không parse icon); KHÔNG thêm cột vào bảng graph (hooks parse field index cứng — thêm cột làm gate fail-open âm thầm); statusline script `.claude/statusline-orchestration.sh` đọc graph → render segment `📊` dưới prompt (chain sau global statusline nếu project có).
 
+## Fable-main (P0 — chặt hơn Opus)
+
+Khi main agent chạy **Fable**: **pure orchestrator tuyệt đối — cấm mọi code, kể cả size-S**. Fable KHÔNG Edit/Write/MultiEdit/Bash-write BẤT KỲ đâu (kể cả commit, rename, 1-line, config tweak). Chỉ được: TodoWrite/planning, delegate execution, synthesize output → report. Ngoại lệ 2 loại: (1) Write vào memory dir (`~/.claude/projects/*/memory/`, gồm MEMORY.md) — memory không phải code, không phải harness file; (2) Write vào `.claude/state/` (task-graph, ledger) — planning/state artifact, không phải code, orchestrator phải tự ghi được graph để dispatch/resume hoạt động. Mọi thứ chạm file khác (kể cả 4 case size-S dưới) → delegate hoặc STOP hỏi user.
+
+**Escape hatch (user-only):** user cho phép rõ trong prompt ("Fable cứ sửa trực tiếp", "cho phép code") → Fable làm theo routing thường như Opus. KHÔNG tự suy diễn "task nhỏ chắc OK" — im lặng = cấm. Permission chỉ hiệu lực trong turn/task được cho phép — turn sau user im lặng = cấm lại, KHÔNG suy diễn "user đã cho phép lúc nãy".
+
+**Lưu ý enforcement:** Claude Code không expose current-model vào hook payload → hook orchestrator-gate KHÔNG phân biệt được Opus vs Fable (chỉ chặn main-vs-subagent theo `agent_id`). Ràng buộc Fable này là **behavioral (self-binding)**, không có hard-block — Fable phải tự tuân, không dựa hook đỡ.
+
+**Chi phí — KHÔNG phải constraint.** Routing chỉ theo nhanh + chất lượng; Sonnet = executor chính, Gemini/DeepSeek/Codex phụ trợ — không dùng thay Sonnet chỉ vì rẻ hơn.
+
 ## Size-S — Opus làm trực tiếp (4 case)
 
 1. TodoWrite / planning
@@ -119,17 +129,17 @@ Prompt marker (v1, quay lại từ v1.2 — hết cần slug vì mỗi worktree 
 |---|---|---|---|
 | **S** | 4 case trên | **Opus main** | — |
 | **reasoning-only** | architecture design, debug chẩn đoán root cause, code review (KHÔNG kèm edit) | **Opus main** | — |
-| **M-mechanical** | boilerplate / batch edit | `delegate-deepseek` | → sonnet → re-classify L/XL (1 lần) → STOP + báo user |
+| **M-mechanical** | boilerplate / batch edit | `delegate-codex-terra` | → `delegate-claude-haiku` → re-classify L/XL (1 lần) → STOP + báo user |
 | **read-only** | audit, cross-file summary, grep rộng, risk analysis | `delegate-sonnet` | → gemini (free, chậm hơn; degrade >200K) → deepseek → STOP + báo user |
 | **web-research** | research web nhiều nguồn, so sánh options, đọc docs dài | subagent in-harness `model: fable` (WebSearch/WebFetch) | → opus → sonnet → gemini (search grounding, chỉ gom nguồn URL) → STOP + báo user. ≤2 query → main tự làm |
-| **hard-reasoning-code** | bug khó đã resist fix thường, algo design phức tạp, security-sensitive edit, refactor invariant tinh vi (concurrency, transaction) | `delegate-codex` | → sonnet → STOP: Opus re-decompose spec |
-| **L/XL** | code/edit thật theo spec rõ: implement feature, refactor thường, fix bug sau khi đã chẩn đoán rõ nguyên nhân | `delegate-sonnet` | → codex → STOP: Opus re-decompose spec (KHÔNG rơi về DeepSeek) |
+| **hard-reasoning-code** | bug khó đã resist fix thường, algo design phức tạp, security-sensitive edit, refactor invariant tinh vi (concurrency, transaction) | `delegate-codex-sol` | → `delegate-claude-opus` → STOP: Opus re-decompose spec |
+| **L/XL** | code/edit thật theo spec rõ: implement feature, refactor thường, fix bug sau khi đã chẩn đoán rõ nguyên nhân | `delegate-codex-luna` | → `delegate-claude-sonnet` → STOP: Opus re-decompose spec (KHÔNG rơi về DeepSeek) |
 
 **Heuristic M vs L/XL** (ranh giới routing quan trọng nhất): chạm ≤3 file + pattern lặp lại + KHÔNG đổi logic/behavior (rename, đổi signature hàng loạt, format, boilerplate) → **M-mechanical**. Đổi behavior, thêm/sửa algo, refactor đụng invariant, fix bug cần suy luận → **L/XL**. Nghi ngờ giữa 2 nhãn → chọn nhãn cao hơn (L/XL) vì under-provision subagent tốn 1 vòng fallback.
 
-**Heuristic L/XL vs hard-reasoning-code**: tín hiệu "đã thử fix không được", "security review", "concurrency/race condition", "thiết kế thuật toán phức tạp" → **hard-reasoning-code** (Codex trước). Spec rõ, biết ngay cách làm (thêm field, implement theo design có sẵn, refactor cơ học có suy luận nhẹ) → **L/XL** (Sonnet trước). Nghi ngờ → chọn hard-reasoning-code (Codex mạnh hơn, an toàn hơn khi under-provision). M-mechanical ưu tiên DeepSeek trước (sai cũng dễ reject), fallback Sonnet ngay khi fail.
+**Heuristic L/XL vs hard-reasoning-code**: tín hiệu "đã thử fix không được", "security review", "concurrency/race condition", "thiết kế thuật toán phức tạp" → **hard-reasoning-code** (`delegate-codex-sol` trước). Spec rõ, biết ngay cách làm (thêm field, implement theo design có sẵn, refactor cơ học có suy luận nhẹ) → **L/XL** (`delegate-codex-luna` trước, fallback `delegate-claude-sonnet`). Nghi ngờ → chọn hard-reasoning-code (Codex mạnh hơn, an toàn hơn khi under-provision). M-mechanical dùng `delegate-codex-terra` trước, fallback `delegate-claude-haiku`.
 
-**Git-ops executor (khi main không tự chạy được):** git mechanical (commit/push/branch/tag, lệnh exact do main soạn sẵn) → subagent in-harness `model: haiku` (Sonnet trần; agent Sonnet cùng task còn sống → dùng lại). Deploy flow (merge protected + smoke test + push safety) → subagent in-harness Sonnet. CẢ HAI in-harness ONLY — wrapper ngoài (deepseek/gemini/codex) chỉ sản xuất diff, KHÔNG đụng git state (`check_no_new_commits` enforce). Confirm gate deploy (số commit, tác động, downtime) vẫn ở main + user TRƯỚC dispatch — executor không tự quyết.
+**Git-ops executor (khi main không tự chạy được — vd Fable-main):** git mechanical (commit/push/branch/tag, lệnh exact do main soạn sẵn) → subagent in-harness `model: haiku` (Sonnet trần; agent Sonnet cùng task còn sống → dùng lại). Deploy flow (merge protected + smoke test + push safety) → subagent in-harness Sonnet. CẢ HAI in-harness ONLY — wrapper ngoài (deepseek/gemini/codex) chỉ sản xuất diff, KHÔNG đụng git state (`check_no_new_commits` enforce). Confirm gate deploy (số commit, tác động, downtime) vẫn ở main + user TRƯỚC dispatch — executor không tự quyết.
 
 **Repo KHÔNG có delegate wrapper** (`scripts/delegate/` vắng): chỉ `delegate-sonnet` (in-harness) chạy được — mọi nhánh cần execute route thẳng sang Sonnet, KHÔNG STOP, KHÔNG Opus tự ôm. Ghi rõ trong report là repo thiếu wrapper.
 
@@ -165,7 +175,7 @@ Subagent implement KHÔNG được là subagent review — người viết có b
 
 **Integration verify (BẮT BUỘC sau merge nhiều worktree):** mỗi mảnh verify pass riêng ≠ ghép lại chạy đúng. Sau merge ≥2 worktree cùng task, PHẢI chạy verify tích hợp (test/build/smoke của project) trên branch đã ghép TRƯỚC khi coi task xong hoặc commit tổng. Fail → xử lý như REVISE: chẩn đoán mảnh lệch, vòng execute mới — KHÔNG merge đè tiếp.
 
-**Reasoning-effort knob (Codex):** model map: `gpt-6.1-sol` strongest (large refactors, architecture, hard bugs, security, long multi-file tasks); `gpt-6.1-terra` balanced default high (features, bug fixes, PR review, tests); `gpt-6-luna` fastest small-scope (rename, config edits, single tests, docs/code lookup). Task khó → `-c model_reasoning_effort="high|xhigh"` trong sub-task prompt; `max` chỉ khi thật cần. Smoke/lint nhẹ → `low`.
+**Codex persona models:** `cx/gpt-6.1-sol` = Opus tier for hard reasoning, algorithms, and security; `cx/gpt-6-luna` = Sonnet tier and generic CLI default for ordinary L/XL implementation; `cx/gpt-6.1-terra` = Haiku tier for M-mechanical edits. Dedicated personas `delegate-codex-sol/luna/terra` use their respective IDs with `[1m]` and roles. Fable uses `cx/gpt-6-astra` in the Codex profile only, not as a coding persona. Preserve `PROXY_CODEX_MODEL`/`CODEX_MODEL` overrides. Task khó → `-c model_reasoning_effort="high|xhigh"` trong sub-task prompt; `max` chỉ khi thật cần. Smoke/lint nhẹ → `low`.
 
 ## Loop guard (hard rules)
 
