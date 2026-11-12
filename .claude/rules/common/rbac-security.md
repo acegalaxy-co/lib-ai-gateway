@@ -16,7 +16,7 @@ paths:
   - "docker-compose*"
   - "ecosystem.config.*"
   - "**/deploy*"
-  - ".claude/skills/production-*/**"
+  - ".claude/skills/deploy-production*/**"
   - ".claude/skills/git-push-safety/**"
   - ".claude/skills/ace-rbac-notion/**"
 metadata:
@@ -39,7 +39,7 @@ Có `RBAC` → mọi push + mọi deploy (staging/prod, mọi skill deploy) PH�
 
 Trên range sắp push (`git diff <upstream>..HEAD`). Fail bước nào → DỪNG, sửa, chạy lại:
 
-- `/audit-git-leak` + `/check-hardcode` + subagent `secret-scanner`.
+- `/audit-git-leak` + `/audit-hardcode` + subagent `secret-scanner`.
 - Không tracked: `.env*`, token, id page/DB Notion thật (chỉ qua env), output dry-run/`--apply` của `setup.js`, dump HR/email nhân sự (ngoài 3 email owner cố định).
 - Chặn quyền phía server: mọi route `./admin`, API admin, `/api/ai/explain`, trang chỉ xem → không login / không quyền / `ban` ra 401/403/redirect, kể cả gọi API trực tiếp (ẩn nút ≠ chặn). Có test từ chối tương ứng.
 - Response/log không lộ: lỗi không trả stack, token, id Notion, email người khác; cookie phiên không chứa quyền; log không in token/ticket.

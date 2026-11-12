@@ -17,7 +17,7 @@ paths:
   - "**/deploy*"
   - "package.json"
   - ".npmignore"
-  - ".claude/skills/production-*/**"
+  - ".claude/skills/deploy-production*/**"
   - ".claude/skills/git-push-safety/**"
 metadata:
   type: reference
@@ -72,7 +72,7 @@ done; rm -f /tmp/probe.$$
 
 ## 4. Trước push / deploy
 
-- gitleaks + `/check-hardcode` qua `/git-push-safety` (hook chặn raw `git push`).
+- gitleaks + `/audit-hardcode` qua `/git-push-safety` (hook chặn raw `git push`).
 - **Static security scan (SQLi, SAST…) nếu project có:** chạy trên đúng SHA sắp deploy; vi phạm MỚI ngoài baseline → chặn deploy. Baseline chỉ được co lại (fix xong → xoá khỏi baseline), KHÔNG thêm để lách. Scan lỗi/không chạy được = chưa scan → chặn, không coi là pass.
 - `.env*`, `*.pem`, `*.key`, `credentials*` KHÔNG tracked: `git ls-files | grep -Ei '(^|/)\.env|\.pem$|\.key$|credential|id_rsa'` (trừ `.env.example`) phải rỗng.
 - Container KHÔNG mount nguyên `~/.ssh`, `~/.claude`, `~/.config/gh`, `~/.aws` — chỉ mount đúng file cần, `:ro`.

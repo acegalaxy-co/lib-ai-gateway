@@ -55,10 +55,10 @@ Luồng: **code/fix (TDD) → test → commit → verifier → smoke cuối → 
 
 ## Hoàn tất (sau APPROVE, theo thứ tự)
 
-1. **Smoke cuối** — chạy app thật bằng smoke của project (`/smoke-test`, `/smoke-server`, hoặc lệnh trong README/CI: khởi động server/CLI, probe route/lệnh chính, UI thì screenshot headless). Process con tự spawn phải có watchdog + hard timeout. Fail → R liên quan `passes: false`, quay Vòng lặp.
+1. **Smoke cuối** — chạy app thật bằng smoke của project (`/ace-smoke-test`, `/ace-smoke-server`, hoặc lệnh trong README/CI: khởi động server/CLI, probe route/lệnh chính, UI thì screenshot headless). Process con tự spawn phải có watchdog + hard timeout. Fail → R liên quan `passes: false`, quay Vòng lặp.
 2. **Merge (nếu được)** — chỉ khi làm trên nhánh tạm (`feat|fix/<slug>`). Có `.claude/fix-ledger.md` → `/fix-ledger` CHECK trước. Merge vào working branch theo `git-conventions` (fast-forward/đồng bộ nhánh, push theo rule project). Conflict / diverged / session khác đang dở trên nhánh đích → BLOCKED, không tự rebase/force. Đã sửa thẳng trên working branch → bỏ qua bước này.
 3. **Dọn dẹp** — liệt kê: worktree + nhánh tạm đã merge, process con còn sống (server/browser do loop mở), file tạm của loop, `.claude/state/loop-<slug>/` → **hỏi user xác nhận** rồi mới xoá (`/git-cleanup-branch`, `git branch -d`, không `-D`/`rm -rf` khi chưa được đồng ý). Learnings tái dùng chuyển vào memory/CLAUDE.md TRƯỚC khi xoá state.
-4. **Build & deploy** — CHỈ khi `deploy: true`. Theo skill deploy của project (`production-deploy`, `production-deploy-rsync`, hoặc skill/rule deploy riêng repo): deploy từ working branch sạch đã merge, in mẫu confirm deploy (commit sẽ ship), build, deploy, probe live mọi route chính, ghi lại SHA đã deploy. Probe fail → BLOCKED, báo user (không tự rollback khi skill deploy không quy định). `deploy: false` → không build/deploy, ghi "chưa deploy" vào Report.
+4. **Build & deploy** — CHỈ khi `deploy: true`. Theo skill deploy của project (`deploy-production`, `deploy-production rsync <target>`, hoặc skill/rule deploy riêng repo): deploy từ working branch sạch đã merge, in mẫu confirm deploy (commit sẽ ship), build, deploy, probe live mọi route chính, ghi lại SHA đã deploy. Probe fail → BLOCKED, báo user (không tự rollback khi skill deploy không quy định). `deploy: false` → không build/deploy, ghi "chưa deploy" vào Report.
 
 ## Guard — dừng, không "cố thêm"
 

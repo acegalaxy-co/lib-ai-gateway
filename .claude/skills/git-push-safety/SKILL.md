@@ -42,7 +42,7 @@ cd <repo tuyệt đối> && sh .claude/skills/git-push-safety/push-safe.sh [--fu
   remote imba.
 - Nhiều branch/remote → gọi script lần lượt từng `<remote> <branch>` (remote chính
   trước); remote không-imba cần user tự set `PUSH_SAFE_ALLOW_NONIMBA=1` cho lần đó.
-- Bước `/check-hardcode` + đọc diff (bước 3) là phán đoán: diff lớn/lạ → chạy trước khi gọi script.
+- Bước `/audit-hardcode` + đọc diff (bước 3) là phán đoán: diff lớn/lạ → chạy trước khi gọi script.
 
 Các mục dưới mô tả chi tiết từng bước (script đã tự động hoá phần cơ học).
 
@@ -131,7 +131,7 @@ là quyết định họ tự làm thủ công, không phải command tự quy�
 
 ## 3. Sensitive-content scan
 
-Trước tiên invoke skill `/check-hardcode` (quét rộng: IP/domain/email/generic
+Trước tiên invoke skill `/audit-hardcode` (quét rộng: IP/domain/email/generic
 hardcode mà hook auto-block cố ý bỏ qua vì false-positive). Nếu skill report
 finding đáng ngại, DỪNG — không tiếp tục sang phán đoán thủ công bên dưới.
 
@@ -153,7 +153,8 @@ Rồi chạy `git status` và `git diff --stat` (so với branch upstream/main, 
   khác chưa duyệt → nghi ngờ), không hardcode tên org trong skill.
   Có file `.claude/sensitive-patterns.txt` (gitignored, 1 regex/dòng: IP
   production, domain thật, domain nội bộ org) → `git diff <base>...HEAD | grep -nEf`
-  file đó; hit → DỪNG. Không có file → chỉ dựa phán đoán thủ công, KHÔNG bịa pattern.- Thông tin cá nhân (email, tên) chưa public trong git history của repo
+  file đó; hit → DỪNG. Không có file → chỉ dựa phán đoán thủ công, KHÔNG bịa pattern.
+- Thông tin cá nhân (email, tên) chưa public trong git history của repo
 - File nào trông như bị stage nhầm (vd `.env`, `*.bak`, file swap editor,
   credential dump)
 

@@ -21,7 +21,7 @@ Repo không deploy lên host nào (thư viện, tool chạy local) → báo "kh�
 - `.claude/skills/deploy-doc/project.md` — khai báo: glob thư mục service, danh sách nguồn sự thật, heading mở đầu và heading kết thúc của phần chung, file mẫu bố cục.
 - `.claude/skills/deploy-doc/deploy-common.md` — bản duy nhất của phần quy trình deploy chung.
 
-Chưa có `project.md` → lần chạy đầu: dò thư mục service (vd `src/features/*`, `services/*`, `apps/*`, `packages/*`; repo một service → gốc repo), dò nguồn sự thật (skill `deploy-*` / `production-deploy` của project, cấu hình PM2/systemd/docker/CI, chỗ code validate env, file lịch/cron), trình user xác nhận một lần rồi ghi `project.md`. Chưa có `deploy-common.md` → soạn từ skill deploy của project, user xác nhận rồi ghi.
+Chưa có `project.md` → lần chạy đầu: dò thư mục service (vd `src/features/*`, `services/*`, `apps/*`, `packages/*`; repo một service → gốc repo), dò nguồn sự thật (skill `deploy-*` / `deploy-production` của project, cấu hình PM2/systemd/docker/CI, chỗ code validate env, file lịch/cron), trình user xác nhận một lần rồi ghi `project.md`. Chưa có `deploy-common.md` → soạn từ skill deploy của project, user xác nhận rồi ghi.
 
 ## Các bước
 

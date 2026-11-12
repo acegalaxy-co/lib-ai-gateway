@@ -268,7 +268,7 @@ npm run typecheck --silent
 git diff --check
 ```
 
-Sau cleanup, invoke `/check-hardcode`. Trước mọi push/commit request, invoke `/git-push-safety --scan-only`.
+Sau cleanup, invoke `/audit-hardcode`. Trước mọi push/commit request, invoke `/git-push-safety --scan-only`.
 
 Nếu scope chỉ markdown/config và repo không có test phù hợp, dùng verify tối thiểu:
 

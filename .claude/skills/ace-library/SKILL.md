@@ -6,7 +6,7 @@ user-invocable: true
 
 # ace-library — discovery + cập nhật thư viện nội bộ ACE Galaxy
 
-> **Nhóm skill bảo mật (`ace-*`)** — nguồn phát triển là nhánh `ace-skill` của repo ccswitch, CHỈ push lên remote `kane` (repo private `kanalias/ccswitch-kane`). KHÔNG push nhánh `ace-skill` lên `origin` (public). Gate: `.claude/private-branches.txt` + `.git/hooks/pre-push` + ruleset GitHub. Xem rule `private-branch-kane`.
+> **Nhóm skill bảo mật (`ace-*`)** — nguồn phát triển là `main` của repo ccswitch (private toàn bộ từ 2026-11-10, không còn nhánh `ace-skill`); nội dung ace-* chỉ push remote private trong allowlist `.claude/private-paths.txt`.
 
 Input: yêu cầu tính năng (`$ARGUMENTS`, có thể rỗng) + source/deps/lockfile/stack project hiện tại.
 
@@ -19,7 +19,7 @@ Input: yêu cầu tính năng (`$ARGUMENTS`, có thể rỗng) + source/deps/loc
 - Stack project không chạy được lib JS → A/B/C vẫn áp, phần cài/nâng cấp thay bằng **D** (port).
 
 Thứ tự ưu tiên: **code sẵn trong project → thư viện ACE Galaxy → thư viện ngoài
-(qua [/dep-ladder-check](../dep-ladder-check/SKILL.md)) → tự viết phần còn thiếu.**
+(qua [/audit-dep-ladder](../audit-dep-ladder/SKILL.md)) → tự viết phần còn thiếu.**
 
 ## Danh mục (điểm khởi đầu, KHÔNG phải bằng chứng)
 
@@ -121,7 +121,7 @@ Lib `@acegalaxy/*` là Node/JS. Project Java/Kotlin/Go/Python/PHP… (hoặc run
    Đọc README + source API cần + `test/`.
 3. **Chỉ port API project dùng, giữ nguyên contract:** input/output, luật nghiệp vụ, fail closed/fallback,
    format output (vd header alert), tên env. KHÔNG đổi hành vi "cho hợp ngôn ngữ". Dùng stdlib/dep sẵn có;
-   dep mới → [/dep-ladder-check](../dep-ladder-check/SKILL.md).
+   dep mới → [/audit-dep-ladder](../audit-dep-ladder/SKILL.md).
 4. **CLI/setup chạy 1 lần** (`setup.js`, CLI `service-alert`…) → chạy từ bản clone bằng `node`, không port.
 5. **Test:** port case trong `test/` của lib sang test framework sẵn có của project, HTTP fake (không gọi thật):
    ≥ 1 happy + ≥ 1 từ chối/lỗi.
@@ -158,7 +158,7 @@ Cuối output luôn có mục **Đề xuất cải tiến** — chỉ đề xu�
   sai quy ước `lib-` → ghi `acegalaxy-co/lib-<name>`: <việc cần làm> (ứng viên issue/PR riêng).
 - **Adapter viết trong project dùng lại được** → đề xuất đưa vào lib nào (hoặc lib mới `lib-<name>`).
 - **Skill này:** danh mục thiếu/sai (lib mới, lib bỏ, mô tả lệch source), bước quy trình thừa/thiếu
-  → ghi rõ dòng cần sửa trong `harness/templates/skills/ace-library/SKILL.md` (repo ccswitch,
+  → ghi rõ dòng cần sửa trong `harness/templates/skills/ace-shared/ace-library/SKILL.md` (repo ccswitch,
   rồi `/update-harness-ccswitch` để sync).
 
 Bị chặn (thiếu quyền repo, thiếu env/config thiết yếu) → hỏi user đúng thông tin cần, dừng.

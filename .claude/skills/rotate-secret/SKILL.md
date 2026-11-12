@@ -57,6 +57,17 @@ Tuân [[secrets-no-printout]]. Bất biến: **giá trị mới không đi qua C
    - kết nối: chạy lệnh test của service/healthcheck, chỉ báo exit code/HTTP status; credential nếu cần truyền thì qua env/file, KHÔNG qua argv hay `-v` log.
 6. **Report** (tiếng Việt, ngắn): biến nào, file/host nào đã đổi, service đã reload, kết quả verify (độ dài/exit code), việc còn lại (revoke giá trị cũ ở provider đã làm chưa, nơi khác còn giá trị cũ).
 
+## Ví dụ: Telegram bot token
+
+Áp đúng các bước trên với:
+
+- `NAME=TELEGRAM_BOT_TOKEN`; target = host + env file + service của bot (hỏi user, không đoán).
+- Bước 2 (user làm): Telegram → @BotFather → `/revoke` → chọn bot → xác nhận → nhận token mới, giữ trong password manager của user. Token cũ chết ngay khi revoke → bot offline tới khi rotate xong; chụp baseline trước (vd `pm2 list` / `docker compose ps`).
+- Verify shape (chỉ đếm, không in dòng): `grep -c '^TELEGRAM_BOT_TOKEN=' <ENV_FILE>` = `1`; `grep -cE '^TELEGRAM_BOT_TOKEN=[0-9]{8,10}:[A-Za-z0-9_-]{35}$' <ENV_FILE>` = `1`; độ dài khoảng 44–46; quyền file `600`.
+- Reload rồi xem vài dòng log khởi động: bot báo đúng username = OK; `getUpdates 401` = token sai hoặc service chưa nạp env mới (pm2 thiếu `--update-env`).
+- Kiểm end-to-end: gửi 1 lệnh cho bot (vd `/whoami` nếu bot có) để chắc auth chạy và để lại dấu trong audit log của bot (nếu có).
+- Sự cố lộ token → xem log/audit của bot quanh thời điểm lộ tìm hoạt động bất thường.
+
 ## Nếu secret đã bị paste vào chat/log
 
 Coi là **compromised**: dừng, cảnh báo user, xoay lại từ bước 2 với giá trị MỚI (cái cũ coi như lộ), tuyệt đối không nhắc lại giá trị đó trong bất kỳ response nào.

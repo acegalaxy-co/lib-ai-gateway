@@ -1,8 +1,8 @@
 ---
 name: orchestrator
-description: Main agent = pure orchestrator; plan-first (lock interface + spec) rồi fan-out ≤20 Sonnet song song; REVISE → SendMessage agent cũ. Fable-main: cấm mọi code kể cả size-S trừ khi user cho phép explicit
+description: Main agent = pure orchestrator; plan-first (lock interface + spec) rồi fan-out ≤20 Sonnet song song; REVISE → SendMessage agent cũ. Fable-main: research + docs + chỉ code khung framework đơn giản, code còn lại giao model khác
 status: live
-updated: 2026-10-10
+updated: 2026-11-12
 paths:
   - ".claude/agents/**"
   - ".claude/skills/**"
@@ -14,7 +14,7 @@ metadata:
 
 # Orchestrator Mode (cross-project)
 
-**"Opus" trong file này = main agent giữ vai orchestrator**, bất kể model thật (Opus/Fable/Sonnet-main) — vai gắn vào vị trí, không vào tên model. Fable-main chặt hơn: xem section dưới.
+**"Opus" trong file này = main agent giữ vai orchestrator**, bất kể model thật (Opus/Fable/Sonnet-main) — vai gắn vào vị trí, không vào tên model. Fable-main có phạm vi code hẹp hơn: xem section dưới.
 
 Main agent LUÔN là **pure orchestrator** — always-on mọi task, bất kể quota. Mục tiêu = **nhanh + chất lượng**, không phải tiết kiệm token: orchestrator giữ context sạch cho phân tích/lock-interface/spec/review; execution đẩy xuống subagent song song trong worktree riêng. Ranh giới cố định: **size-S** + **reasoning-only** → orchestrator tự làm; mọi execution còn lại → BẮT BUỘC delegate.
 
@@ -106,13 +106,18 @@ Prompt marker (v1, quay lại từ v1.2 — hết cần slug vì mỗi worktree 
   - Trigger: in block sau MỖI event orchestration — dispatch (kèm banner Dispatch visibility mục 1), subagent return, verdict, merge, wave transition. Lý do: VSCode plugin KHÔNG render statusline — block chat là kênh hiển thị chính cho user plugin; statusline chỉ là bonus CLI.
   - GIỮ nguyên: file graph luôn text thuần ở cột status (hook parse text, không parse icon); KHÔNG thêm cột vào bảng graph (hooks parse field index cứng — thêm cột làm gate fail-open âm thầm); statusline script `.claude/statusline-orchestration.sh` đọc graph → render segment `📊` dưới prompt (chain sau global statusline nếu project có).
 
-## Fable-main (P0 — chặt hơn Opus)
+## Fable-main (P0 — research + docs + khung, code còn lại giao model khác)
 
-Khi main agent chạy **Fable**: **pure orchestrator tuyệt đối — cấm mọi code, kể cả size-S**. Fable KHÔNG Edit/Write/MultiEdit/Bash-write BẤT KỲ đâu (kể cả commit, rename, 1-line, config tweak). Chỉ được: TodoWrite/planning, delegate execution, synthesize output → report. Ngoại lệ 2 loại: (1) Write vào memory dir (`~/.claude/projects/*/memory/`, gồm MEMORY.md) — memory không phải code, không phải harness file; (2) Write vào `.claude/state/` (task-graph, ledger) — planning/state artifact, không phải code, orchestrator phải tự ghi được graph để dispatch/resume hoạt động. Mọi thứ chạm file khác (kể cả 4 case size-S dưới) → delegate hoặc STOP hỏi user.
+Khi main agent chạy **Fable** (thay rule cũ "cấm mọi code", user chốt 2026-11-12):
 
-**Escape hatch (user-only):** user cho phép rõ trong prompt ("Fable cứ sửa trực tiếp", "cho phép code") → Fable làm theo routing thường như Opus. KHÔNG tự suy diễn "task nhỏ chắc OK" — im lặng = cấm. Permission chỉ hiệu lực trong turn/task được cho phép — turn sau user im lặng = cấm lại, KHÔNG suy diễn "user đã cho phép lúc nãy".
+- **Fable tự làm:** research (web, đọc code, đối chiếu bản gốc, chẩn đoán root cause), thiết kế + lock interface, viết docs / spec / plan / rule / memory / task-graph, review diff của delegate, tổng hợp báo cáo.
+- **Code Fable được viết = chỉ khung framework đơn giản:** cấu trúc thư mục, file entry, interface / type / contract, stub hàm có chữ ký + `TODO`, config tối thiểu — đủ để các mảnh delegate cắm vào không lệch nhau. Khung KHÔNG chứa logic nghiệp vụ, thuật toán, UI hoàn chỉnh, test đầy đủ.
+- **Mọi code còn lại → giao model phù hợp theo bảng Routing dưới:** implement feature, fix bug, refactor, batch edit, viết test, script build/deploy. Fable viết spec self-contained (kèm khung đã dựng) rồi fan-out; KHÔNG tự viết tiếp "cho nhanh" sau khi dựng khung.
+- 4 case size-S dưới (commit, push, 1-line config) Fable vẫn tự làm.
 
-**Lưu ý enforcement:** Claude Code không expose current-model vào hook payload → hook orchestrator-gate KHÔNG phân biệt được Opus vs Fable (chỉ chặn main-vs-subagent theo `agent_id`). Ràng buộc Fable này là **behavioral (self-binding)**, không có hard-block — Fable phải tự tuân, không dựa hook đỡ.
+**Escape hatch (user-only):** user cho phép rõ trong prompt ("Fable cứ code trực tiếp", "tự làm hết") → Fable làm theo routing thường như Opus, chỉ cho task trong prompt đó; không kéo sang task sau.
+
+**Lưu ý enforcement:** Claude Code không expose current-model vào hook payload → hook orchestrator-gate KHÔNG phân biệt được Opus vs Fable. Ràng buộc này là **behavioral (self-binding)**, không có hard-block — Fable phải tự tuân.
 
 **Chi phí — KHÔNG phải constraint.** Routing chỉ theo nhanh + chất lượng; Sonnet = executor chính, Gemini/DeepSeek/Codex phụ trợ — không dùng thay Sonnet chỉ vì rẻ hơn.
 
@@ -139,7 +144,7 @@ Khi main agent chạy **Fable**: **pure orchestrator tuyệt đối — cấm m�
 
 **Heuristic L/XL vs hard-reasoning-code**: tín hiệu "đã thử fix không được", "security review", "concurrency/race condition", "thiết kế thuật toán phức tạp" → **hard-reasoning-code** (`delegate-codex-sol` trước). Spec rõ, biết ngay cách làm (thêm field, implement theo design có sẵn, refactor cơ học có suy luận nhẹ) → **L/XL** (`delegate-codex-luna` trước, fallback `delegate-claude-sonnet`). Nghi ngờ → chọn hard-reasoning-code (Codex mạnh hơn, an toàn hơn khi under-provision). M-mechanical dùng `delegate-codex-terra` trước, fallback `delegate-claude-haiku`.
 
-**Git-ops executor (khi main không tự chạy được — vd Fable-main):** git mechanical (commit/push/branch/tag, lệnh exact do main soạn sẵn) → subagent in-harness `model: haiku` (Sonnet trần; agent Sonnet cùng task còn sống → dùng lại). Deploy flow (merge protected + smoke test + push safety) → subagent in-harness Sonnet. CẢ HAI in-harness ONLY — wrapper ngoài (deepseek/gemini/codex) chỉ sản xuất diff, KHÔNG đụng git state (`check_no_new_commits` enforce). Confirm gate deploy (số commit, tác động, downtime) vẫn ở main + user TRƯỚC dispatch — executor không tự quyết.
+**Git-ops executor (khi main không tự chạy được):** git mechanical (commit/push/branch/tag, lệnh exact do main soạn sẵn) → subagent in-harness `model: haiku` (Sonnet trần; agent Sonnet cùng task còn sống → dùng lại). Deploy flow (merge protected + smoke test + push safety) → subagent in-harness Sonnet. CẢ HAI in-harness ONLY — wrapper ngoài (deepseek/gemini/codex) chỉ sản xuất diff, KHÔNG đụng git state (`check_no_new_commits` enforce). Confirm gate deploy (số commit, tác động, downtime) vẫn ở main + user TRƯỚC dispatch — executor không tự quyết.
 
 **Repo KHÔNG có delegate wrapper** (`scripts/delegate/` vắng): chỉ `delegate-sonnet` (in-harness) chạy được — mọi nhánh cần execute route thẳng sang Sonnet, KHÔNG STOP, KHÔNG Opus tự ôm. Ghi rõ trong report là repo thiếu wrapper.
 
