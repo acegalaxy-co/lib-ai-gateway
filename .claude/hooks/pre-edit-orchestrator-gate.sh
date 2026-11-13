@@ -5,7 +5,7 @@
 #
 # Ranh giới (path-coarse, không đoán size — nghi ngờ → chặn):
 #   - Chặn khi: caller = MAIN agent  VÀ  file_path thuộc core source dirs (src/)
-#   - Cho phép: mọi tool call từ SUBAGENT (delegate-sonnet/deepseek/... edit thẳng OK)
+#   - Cho phép: mọi tool call từ SUBAGENT (delegate-codex-sol/luna/terra/sonnet/... edit thẳng OK)
 #   - Cho phép: main agent sửa .claude/, docs/, tests/, config root (size-S exception)
 #   - Chặn LUÔN (kể cả từ subagent): risk-path denylist bên dưới.
 #
@@ -134,9 +134,10 @@ case "$agent_type" in
 🚦 orchestrator-gate: persona "$agent_type" KHÔNG được sửa risk-tagged path.
    File: $file_path
 
-   Domain nhạy cảm (${HARNESS_RISK_DIRS:-}) chỉ cho phép:
-     • delegate-codex   (hard-reasoning-code — ưu tiên cho security-sensitive edit)
-     • delegate-sonnet  (L/XL fallback)
+   Domain nhạy cảm (${HARNESS_RISK_DIRS:-}) chặn đúng Gemini/DeepSeek ở trên;
+   mọi persona khác vẫn được sửa, ưu tiên:
+     • delegate-codex-sol    (hard-reasoning-code — ưu tiên cho security-sensitive edit)
+     • delegate-claude-opus  (fallback)
 
    Gemini (read-only by design) và DeepSeek (mechanical/bulk only) không đủ
    reasoning cho domain này — gọi lại đúng persona. Không có bypass cho nhánh
@@ -184,9 +185,9 @@ case "$file_path" in
 
    Rule: .claude/rules/common/orchestrator.md — Opus = pure orchestrator.
    Execution (edit src/) PHẢI route qua delegate subagent:
-     • L/XL algo / refactor / fix sau chẩn đoán → delegate-sonnet (fb: delegate-codex)
-     • M mechanical / batch edit / boilerplate   → delegate-deepseek
-     • read-only audit / cross-file / grep rộng  → delegate-gemini
+     • L/XL algo / refactor / fix sau chẩn đoán → delegate-codex-luna (fb: delegate-claude-sonnet)
+     • M mechanical / batch edit / boilerplate   → delegate-codex-terra (fb: delegate-claude-haiku)
+     • read-only audit / cross-file / grep rộng  → delegate-sonnet (fb: delegate-gemini/deepseek)
 
    Prompt delegate self-contained: repo path + file paths + spec + verify + không commit.
    Edit tool KHÔNG có bypass (không đặt được env cho hook). Chỉ khi ĐÚNG size-S

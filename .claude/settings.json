@@ -27,10 +27,6 @@
           },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-browser-profile-gate.sh"
-          },
-          {
-            "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-deploy-doc.sh"
           }
         ]
@@ -41,15 +37,6 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-task-dispatch-gate.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__(pw_|cloak|playwright|browser).*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-browser-profile-gate.sh"
           }
         ]
       },

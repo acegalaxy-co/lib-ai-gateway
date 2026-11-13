@@ -55,7 +55,11 @@ for p in "$@"; do
     CTX+="$(head -c 200000 "$p")"
   elif [[ -d "$p" ]]; then
     CTX+=$'\n\n--- DIR LISTING: '"$p"$' ---\n'
-    CTX+="$(find "$p" -maxdepth 3 -type f | head -200)"
+    # tách find/head: thư mục nhiều file → find (writer) có thể dính SIGPIPE khi head -200 đọc đủ rồi
+    # exit sớm, pipefail biến thành lỗi 141 → script abort (set -e) dù find chạy đúng. <<< đọc từ file
+    # tạm nội bộ, không qua pipe.
+    _listing="$(find "$p" -maxdepth 3 -type f)"
+    CTX+="$(head -200 <<<"$_listing")"
   fi
 done
 

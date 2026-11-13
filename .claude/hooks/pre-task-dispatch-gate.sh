@@ -64,10 +64,13 @@ fi
 
 missing=()
 
-echo "$prompt" | grep -qiE '(/Users/|/home/|/opt/|\brepo\b)' || missing+=("repo path (absolute path hoặc từ 'repo')")
-echo "$prompt" | grep -qiE '\b(verify|test|bats|acceptance)\b' || missing+=("verify/acceptance criteria")
-echo "$prompt" | grep -qiE '\b(file|path|scope)\b' || missing+=("file paths / scope")
-echo "$prompt" | grep -qiE '\bcommit\b' || missing+=("no-commit instruction (phải nhắc từ 'commit')")
+# <<< (here-string) thay `echo "$prompt" | grep -q…`: prompt dài (self-contained spec) có thể vượt
+# pipe buffer — grep match sớm rồi exit làm echo (writer) dính SIGPIPE, pipefail báo "không khớp"
+# dù marker CÓ trong prompt. here-string đọc thẳng từ file tạm nội bộ, không qua pipe.
+grep -qiE '(/Users/|/home/|/opt/|\brepo\b)' <<<"$prompt" || missing+=("repo path (absolute path hoặc từ 'repo')")
+grep -qiE '\b(verify|test|bats|acceptance)\b' <<<"$prompt" || missing+=("verify/acceptance criteria")
+grep -qiE '\b(file|path|scope)\b' <<<"$prompt" || missing+=("file paths / scope")
+grep -qiE '\bcommit\b' <<<"$prompt" || missing+=("no-commit instruction (phải nhắc từ 'commit')")
 
 if [ "${#missing[@]}" -gt 0 ]; then
   echo "$(ts) BLOCK $subagent_type dispatch → thiếu: ${missing[*]}" >> "$LOG" 2>/dev/null || true

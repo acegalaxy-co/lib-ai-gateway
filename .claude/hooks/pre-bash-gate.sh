@@ -130,15 +130,21 @@ protected_guard
 # command must be EXACTLY (byte-for-byte, after stripping the one allowed
 # "cd <dir> && " / env prefix) one of:
 #   [cd <abs-project-dir-or-cwd> && ] [PUSH_SAFE_PROXY_JUMP=<token> ] \
-#     (sh|bash) [<proj-dir>/].claude/skills/git-push-safety/push-safe.sh \
-#     [--full ][--scan-only ]<remote> <branch>
+#     (sh|bash) <script> [--full ][--scan-only ]<remote> <branch>
+# where <script> is one of:
+#   [<proj-dir>/].claude/skills/git-push-safety/push-safe.sh   (repo copy)
+#   ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/git-push-safety/push-safe.sh
+#     — machine-level copy, also accepted written as `~/.claude/…` or
+#       `$HOME/.claude/…` (thin repos have no copy inside the repo).
 # No newline, no shell metacharacters, nothing appended after <branch>.
 # If this does not match EXACTLY, fall through to the raw-push block below
-# (B3: no path escape — only the literal relative path or an absolute path
-# anchored at $CLAUDE_PROJECT_DIR/cwd is ever accepted; B1: no stacked
-# command, no arbitrary env tolerance besides PUSH_SAFE_PROXY_JUMP).
+# (B3: no path escape — only the literal relative path, an absolute path
+# anchored at $CLAUDE_PROJECT_DIR/cwd, or the literal machine-level path is
+# ever accepted; B1: no stacked command, no arbitrary env tolerance besides
+# PUSH_SAFE_PROXY_JUMP).
 push_safe_allow() {
   local c="$1" cwd_in="$2" rest dir tail envval script abs1 abs2 full_seen=0 scanonly_seen=0 remote branch
+  local mroot mabs mtilde mhome
   case "$c" in *$'\n'*) return 1 ;; esac
   rest="$c"
   case "$rest" in
@@ -170,10 +176,25 @@ push_safe_allow() {
   script=".claude/skills/git-push-safety/push-safe.sh"
   abs1=""; [ -n "${CLAUDE_PROJECT_DIR:-}" ] && abs1="${CLAUDE_PROJECT_DIR%/}/$script"
   abs2=""; [ -n "$cwd_in" ] && abs2="${cwd_in%/}/$script"
+  # Machine-level copy (thin repos): exactly one path, written expanded or as
+  # `~/.claude/…` / `$HOME/.claude/…`. The tilde/$HOME forms are only accepted
+  # when they resolve to that same path (CLAUDE_CONFIG_DIR not relocated).
+  mroot="${CLAUDE_CONFIG_DIR:-${HOME:-}/.claude}"; mroot="${mroot%/}"
+  mabs=""; mtilde=""; mhome=""
+  if [ -n "$mroot" ] && [ "$mroot" != "/.claude" ]; then
+    mabs="$mroot/skills/git-push-safety/push-safe.sh"
+    if [ -n "${HOME:-}" ] && [ "${HOME%/}/.claude/skills/git-push-safety/push-safe.sh" = "$mabs" ]; then
+      mtilde="~/.claude/skills/git-push-safety/push-safe.sh"
+      mhome="\$HOME/.claude/skills/git-push-safety/push-safe.sh"
+    fi
+  fi
   case "$rest" in
     "$script "*) rest="${rest#"$script" }" ;;
     "$abs1 "*) [ -n "$abs1" ] && rest="${rest#"$abs1" }" || return 1 ;;
     "$abs2 "*) [ -n "$abs2" ] && rest="${rest#"$abs2" }" || return 1 ;;
+    "$mabs "*) [ -n "$mabs" ] && rest="${rest#"$mabs" }" || return 1 ;;
+    "$mtilde "*) [ -n "$mtilde" ] && rest="${rest#"$mtilde" }" || return 1 ;;
+    "$mhome "*) [ -n "$mhome" ] && rest="${rest#"$mhome" }" || return 1 ;;
     *) return 1 ;;
   esac
   while :; do
@@ -207,7 +228,8 @@ raw_push_re='(^|[;&|]|[[:space:]]|[/(]|\$\()[[:space:]]*((command|env|xargs)[[:s
 if [ "$push_safe_ok" = 0 ] && ! echo "$cmd" | grep -Eq 'GIT_PUSH_GATE_OK=1'; then
   if printf '%s' "$cmd_rawchk" | grep -Eq "$raw_push_re"; then
     echo "🚨 pre-bash-git-push-gate: raw 'git push' bị chặn." >&2
-    echo "Chạy: cd <repo> && sh .claude/skills/git-push-safety/push-safe.sh <remote> <branch>" >&2
+    echo "Chạy (repo có skill riêng): cd <repo> && sh .claude/skills/git-push-safety/push-safe.sh <remote> <branch>" >&2
+    echo "Chạy (repo thin, skill ở tầng máy): cd <repo> && sh ~/.claude/skills/git-push-safety/push-safe.sh <remote> <branch>" >&2
     echo "  (tự chạy đủ scan: gitleaks + test + sensitive-patterns + file lớn/cấm + detect RBAC/deploy-surface, rồi tự push — KHÔNG cần confirm)." >&2
     echo "GIT_PUSH_GATE_OK=1 git push ... là bypass USER-ORDERED ONLY — agent không tự dùng thay push-safe.sh." >&2
     exit 2
@@ -217,7 +239,9 @@ if [ "$push_safe_ok" = 0 ] && ! echo "$cmd" | grep -Eq 'GIT_PUSH_GATE_OK=1'; the
   # nhiều dòng — chặn luôn, không suy diễn là an toàn.
   if printf '%s' "$cmd" | grep -Fqi 'push-safe.sh'; then
     echo "🚨 pre-bash-git-push-gate: lệnh nhắc tới push-safe.sh nhưng KHÔNG khớp đúng dạng cho phép (B1 strict whitelist)." >&2
-    echo "Đúng dạng: [cd <repo> && ] sh|bash .claude/skills/git-push-safety/push-safe.sh [--full] [--scan-only] <remote> <branch>" >&2
+    echo "Đúng dạng: [cd <repo> && ] sh|bash <script> [--full] [--scan-only] <remote> <branch>, với <script> là một trong:" >&2
+    echo "  • .claude/skills/git-push-safety/push-safe.sh            (repo có skill riêng — cũng nhận path tuyệt đối dưới repo)" >&2
+    echo "  • ~/.claude/skills/git-push-safety/push-safe.sh          (repo thin — cũng nhận \$HOME/... hoặc path tuyệt đối đã mở rộng)" >&2
     echo "  — một dòng, không nối thêm lệnh khác, không prefix env lạ, không đổi path. Command: ${cmd:0:160}" >&2
     exit 2
   fi
@@ -235,7 +259,7 @@ if [ -r "$pb_list" ] && printf '%s\n' "$cmd" | grep -Eq '(^|[;&|]|[[:space:]])gi
     while IFS= read -r seg; do
       printf '%s' "$seg" | grep -Eq '(^|[[:space:]])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^[:space:]-]+)?)*[[:space:]]+push([[:space:]]|$)' || continue
       # remote = từ đầu tiên không bắt đầu bằng '-' sau "push"
-      pb_target=$(printf '%s' "$seg" | sed -E 's/.*[[:space:]]push[[:space:]]+//' | tr ' ' '\n' | grep -v '^-' | head -1)
+      pb_target=$(printf '%s' "$seg" | sed -E 's/.*[[:space:]]push[[:space:]]+//' | tr ' ' '\n' | grep -v '^-' | sed -n '1p')
       [ -n "$pb_target" ] || continue
       case "|$pb_remote|" in *"|$pb_target|"*) continue ;; esac
       # tên remote → MỌI push URL đã cấu hình (W4: --push --all, không chỉ URL đầu)
@@ -268,7 +292,7 @@ if ! echo "$cmd" | grep -Eq 'BATS_SERIAL_OK=1'; then
   while IFS= read -r seg; do
     [ -n "$seg" ] || continue
     echo "$seg" | grep -Eq '(^|[[:space:]])(-j|--jobs)([[:space:]]|=|[0-9]|$)' && continue
-    if echo "$seg" | grep -q '\*\.bats' || [ "$(echo "$seg" | grep -oE '[^[:space:]]+\.bats([[:space:]]|$)' | wc -l | tr -d ' ')" -ge 2 ]; then
+    if grep -q '\*\.bats' <<<"$seg" || [ "$(echo "$seg" | grep -oE '[^[:space:]]+\.bats([[:space:]]|$)' | wc -l | tr -d ' ')" -ge 2 ]; then
       echo "$(ts) BLOCK serial-bats → ${cmd:0:120}" >> "$LOG" 2>/dev/null || true
       cat >&2 << 'EOF'
 🚦 serial-test-gate: bats nhiều file KHÔNG có -j = tuần tự, phí core.
@@ -325,10 +349,10 @@ if echo "$cmd" | grep -Eq '(^|[;&|(]|&&|\|\||[[:space:]](env|sudo|time|xargs|nic
    Bypass delegate wrapper = mất worktree isolation + secret redaction.
 
    Rule: .claude/rules/delegate-llm.md — route qua persona subagent (Task tool):
-     • delegate-codex   (hard-reasoning-code / security-sensitive)
-     • delegate-sonnet  (L/XL execute)
-     • delegate-deepseek (M mechanical / batch)
-     • delegate-gemini  (read-only audit / cross-file)
+     • delegate-codex-sol    (hard-reasoning-code / security-sensitive, fb: delegate-claude-opus)
+     • delegate-codex-luna   (L/XL execute, fb: delegate-claude-sonnet)
+     • delegate-codex-terra  (M mechanical / batch, fb: delegate-claude-haiku)
+     • delegate-sonnet       (read-only audit / cross-file, fb: delegate-gemini/deepseek)
 
    Không có bypass cho nhánh này (isolation boundary, không phải size-S convenience).
 EOF
@@ -380,8 +404,8 @@ block_core_write() {
    Rule: .claude/rules/common/orchestrator.md — main = pure orchestrator. Sửa core
    (src/) PHẢI giao delegate subagent (Agent tool), prompt self-contained
    (repo path + file paths + spec + verify + không commit):
-     • L/XL algo / refactor / fix sau chẩn đoán → delegate-sonnet (fb: delegate-codex)
-     • M mechanical / batch edit / boilerplate   → delegate-deepseek
+     • L/XL algo / refactor / fix sau chẩn đoán → delegate-codex-luna (fb: delegate-claude-sonnet)
+     • M mechanical / batch edit / boilerplate   → delegate-codex-terra (fb: delegate-claude-haiku)
 
    Chỉ khi ĐÚNG size-S (1 dòng, đã biết chính xác chỗ sửa): đặt prefix ngay trong lệnh
      ORCHESTRATOR_GATE_BYPASS=1 <lệnh>      (ghi audit log)

@@ -68,7 +68,7 @@ content=$(printf '%s' "$payload" | jq -r '
   // ((.tool_input.edits // []) | map(.new_string // "") | join("\n"))
   // empty')
 
-if printf '%s' "$content" | grep -qE "$PATTERN"; then
+if grep -qE "$PATTERN" <<<"$content"; then
   echo "🚦 service-alert-gate: $file_path tự gọi Telegram Bot API — $MSG (bypass user-only: BYPASS_SERVICE_ALERT_GATE=1)" >&2
   exit 2
 fi

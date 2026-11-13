@@ -114,7 +114,7 @@ echo "🚦 Orchestrator gate ACTIVE — routing: .claude/rules/common/orchestrat
 # banner stderr model không thấy → trước đây main chỉ biết luật khi bị gate chặn.
 cat << 'EOF'
 🚦 Orchestrator mode: main agent = orchestrator. Sửa source core (src/) → giao subagent ngay từ đầu, không tự Edit/sed/python:
-   delegate-sonnet (L/XL, fix sau chẩn đoán) · delegate-deepseek (M mechanical/batch) · Explore/delegate-gemini (đọc rộng).
+   delegate-codex-luna (L/XL, fix sau chẩn đoán) · delegate-codex-terra (M mechanical/batch) · Explore/delegate-sonnet (đọc rộng).
    Prompt self-contained: repo path + file paths + spec + verify + không commit. Đọc .claude/rules/common/orchestrator.md trước khi giao task M+.
    Chỉ size-S 1 dòng đã biết chỗ sửa: Bash `ORCHESTRATOR_GATE_BYPASS=1 <lệnh>` (audit log). .claude/, test/, docs/ sửa trực tiếp được.
 EOF
@@ -125,7 +125,7 @@ EOF
 
 if [ -n "${HARNESS_RISK_DIRS:-}" ]; then
   echo "🚦 RISK-PATH DENYLIST: ${HARNESS_RISK_DIRS} — delegate-gemini/delegate-deepseek bị chặn (exit 2) dù đang chạy trong subagent." >&2
-  echo "   Chỉ delegate-codex/delegate-sonnet được sửa. Không có bypass (security boundary, không phải size-S convenience)." >&2
+  echo "   Mọi persona khác vẫn được sửa, ưu tiên delegate-codex-sol/delegate-claude-opus. Không có bypass (security boundary, không phải size-S convenience)." >&2
 fi
 
 GATE_LOG="${HOME}/.cache/claude-code-lib-ai-gateway/orchestrator-gate.log"
