@@ -2,7 +2,7 @@
 name: git-conventions
 description: Commit format + cleanup branch/worktree sau merge + auto-push main/working branch qua git-push-safety + merge ≠ deploy + đổi tên remote → hỏi đổi folder local
 status: live
-updated: 2026-10-24
+updated: 2026-11-13
 metadata:
   type: reference
 ---
@@ -18,6 +18,10 @@ feat|fix|refactor|chore|docs: <mô tả>
 ## GitHub org mặc định
 
 Repo mới / push GitHub → tạo dưới org `acegalaxy-co`, KHÔNG dưới username cá nhân (trừ khi user nói rõ). Lib: `acegalaxy-co/lib-<name>`.
+
+## Mirror do tool đồng bộ — CHỈ push remote chính
+
+Repo có mirror (gitlab/github…) do tool backup/cron tự đồng bộ từ remote chính (vd `ace-git-backup`) → CHỈ push remote chính, KHÔNG push tay lên mirror: push mirror trước khi tool thấy commit mới ở remote chính → tool coi mirror "đi trước" và snapshot đè, mirror lệch vĩnh viễn. Mirror báo non-fast-forward kèm chuỗi commit `Snapshot:` → báo user, KHÔNG tự force-push. Remote nào là chính/mirror → ghi ở `rules/project/git-workflow.md` mục Remote.
 
 ## Branch cleanup sau merge (BẮT BUỘC)
 
@@ -50,6 +54,7 @@ User đồng ý → đổi folder + sửa hết chỗ trên trong cùng lượt 
 
 - Merge (+ auto-push ở trên) và deploy là 2 bước. Deploy staging/prod (và push protected branch deploy) cần user xác nhận riêng — "Merge đi" KHÔNG bao gồm deploy.
 - **Ngoại lệ:** prompt hiện tại cho phép rõ deploy (vd "làm xong thì merge push và deploy") → deploy luôn không hỏi lại, vẫn in danh sách commit/tác động theo mẫu confirm deploy ([[git-workflow]]) trước khi chạy. Chỉ áp cho task trong prompt đó, KHÔNG kéo sang task sau.
+- Trước khi ghi lên host: SHA đang chạy phải là tổ tiên HEAD (không đè bản session khác) — [[deploy-security]] mục 4.
 - Deploy prod xong + chạy ổn → tag `stable-<semver>` tại đúng SHA đã deploy, và cập nhật config service trên Notion (nếu project có Notion config).
 
 Liên quan: [[delegate-llm]] (delegate infra), [[orchestrator]] (routing).

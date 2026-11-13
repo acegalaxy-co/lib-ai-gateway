@@ -3,18 +3,20 @@
 <!-- BEGIN HARNESS RULES (managed by install.sh — do not edit inside) -->
 ## Quick links — rules QUAN TRỌNG
 
-- ⭐⭐⭐ [.claude/rules/common/vault-no-mcp.md](.claude/rules/common/vault-no-mcp.md) — **P0**: Vault CRUD KHÔNG qua MCP, Notion API direct
-- ⭐⭐⭐ [.claude/rules/common/token-budget.md](.claude/rules/common/token-budget.md) — **P0**: context-window budget
+- ⭐⭐⭐ [~/.claude/rules/harness/common/vault-no-mcp.md](~/.claude/rules/harness/common/vault-no-mcp.md) — **P0**: Vault CRUD KHÔNG qua MCP, Notion API direct
+- ⭐⭐⭐ [~/.claude/rules/harness/common/token-budget.md](~/.claude/rules/harness/common/token-budget.md) — **P0**: context-window budget
 - [.claude/rules/project/git-workflow.md](.claude/rules/project/git-workflow.md) — branching, working branch rule, protected-branch deploy confirm, worktree, cleanup
-- ⭐⭐⭐ [.claude/rules/common/deploy-security.md](.claude/rules/common/deploy-security.md) — **P0** deploy/publish: allowlist file public, nginx chặn dotfile/config, probe live sau deploy
-- ⭐⭐⭐ [.claude/rules/common/rbac-security.md](.claude/rules/common/rbac-security.md) — **P0** app có RBAC: scan leak + chặn quyền trước push, probe route admin không cookie lúc deploy
-- ⭐⭐⭐ [.claude/rules/common/orchestrator.md](.claude/rules/common/orchestrator.md) — **P0**: sửa gì ảnh hưởng orchestrator → verify harness gate còn chặn (không bị bypass) TRƯỚC push, mục Harness self-check trước push
-- [.claude/rules/common/feature-redflags.md](.claude/rules/common/feature-redflags.md) — safe minimal changes + RED FLAGS cognitive wedge
-- Thêm/sửa rule → đọc [.claude/rules/common/rule-loading-policy.md](.claude/rules/common/rule-loading-policy.md) trước (rule mới mặc định LAZY `paths:`)
-- Ghi memory type project → mirror vào [.claude/memory-mirror/](.claude/memory-mirror/) (chỉ để xem/review qua git, KHÔNG nạp vào context) theo [.claude/rules/common/memory-mirror.md](.claude/rules/common/memory-mirror.md)
+- ⭐⭐⭐ [~/.claude/rules/harness/common/deploy-security.md](~/.claude/rules/harness/common/deploy-security.md) — **P0** deploy/publish: allowlist file public, nginx chặn dotfile/config, probe live sau deploy
+- ⭐⭐⭐ [~/.claude/rules/harness/common/rbac-security.md](~/.claude/rules/harness/common/rbac-security.md) — **P0** app có RBAC: scan leak + chặn quyền trước push, probe route admin không cookie lúc deploy
+- ⭐⭐⭐ [~/.claude/rules/harness/common/orchestrator.md](~/.claude/rules/harness/common/orchestrator.md) — **P0**: sửa gì ảnh hưởng orchestrator → verify harness gate còn chặn (không bị bypass) TRƯỚC push, mục Harness self-check trước push
+- [~/.claude/rules/harness/common/feature-redflags.md](~/.claude/rules/harness/common/feature-redflags.md) — safe minimal changes + RED FLAGS cognitive wedge
+- Thêm/sửa rule → đọc [~/.claude/rules/harness/common/rule-loading-policy.md](~/.claude/rules/harness/common/rule-loading-policy.md) trước (rule mới mặc định LAZY `paths:`)
+- Ghi memory type project → mirror vào [.claude/memory-mirror/](.claude/memory-mirror/) (chỉ để xem/review qua git, KHÔNG nạp vào context) theo [~/.claude/rules/harness/common/memory-mirror.md](~/.claude/rules/harness/common/memory-mirror.md)
 - ⭐⭐⭐ **Harness Architecture (P0)** — xem section dưới
 
 ## ⭐⭐⭐ Harness Architecture (P0 — đọc kỹ)
+
+Profile **thin**: rule chung (common/ace) nạp từ tầng máy `~/.claude/rules/harness/` (cập nhật bằng `harness/install-global.sh`), không nằm trong repo này.
 
 Project follows **Anthropic Claude Code "Harness Engineer"** pattern. Mọi feature mới
 BẮT BUỘC route qua 1 trong **5 surfaces** dưới đây. KHÔNG add ad-hoc scripts ngoài surface.
@@ -45,6 +47,6 @@ BẮT BUỘC route qua 1 trong **5 surfaces** dưới đây. KHÔNG add ad-hoc s
 **Native rules loading.** Claude Code tự động khám phá Markdown trong `.claude/rules/`: rule không có `paths:` được nạp luôn; rule có `paths:` chỉ nạp khi đọc file khớp glob. Rules cung cấp instructions, không phải executable hooks hay permission enforcement. Feature logic → 5 surfaces ở trên; governance → rules.
 
 **Harness rules (bundled, self-contained).** Mọi session PHẢI đọc + tuân thủ trước khi action:
-- [.claude/rules/common/](.claude/rules/common/) — invariant guardrails (general/ngôn ngữ, secret, vault, budget, orchestrator, delegate, git, red-flags, rule-loading, memory-mirror). Managed by harness install.sh: **overwrite** khi re-sync — KHÔNG sửa trực tiếp trong project (sửa upstream ở harness repo).
+- [~/.claude/rules/harness/common/](~/.claude/rules/harness/common/) — invariant guardrails (general/ngôn ngữ, secret, vault, budget, orchestrator, delegate, git, red-flags, rule-loading, memory-mirror). Managed by harness install.sh: **overwrite** khi re-sync — KHÔNG sửa trực tiếp trong project (sửa upstream ở harness repo).
 - [.claude/rules/project/](.claude/rules/project/) — rule riêng repo, LAZY trừ khi vượt gate P0-mọi-turn; install.sh **giữ nguyên** khi re-sync.
 <!-- END HARNESS RULES -->

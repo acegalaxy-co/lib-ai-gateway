@@ -1,6 +1,6 @@
 ---
 name: clean-up-project
-description: Dọn dẹp project an toàn theo dry-run, phân loại rác/dead code/worktree/branch, yêu cầu xác nhận trước thao tác phá huỷ.
+description: "Dọn dẹp project an toàn theo dry-run, phân loại rác/dead code/worktree/branch, yêu cầu xác nhận trước thao tác phá huỷ. Mode `branches` (scope=branches): audit branch đã merge + worktree stale, chỉ xoá những gì user xác nhận — dùng khi \"clean up merged branches\", \"prune worktrees\", /clean-up-project branches (tên cũ /git-cleanup-branch)."
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -26,6 +26,7 @@ Dọn project theo hướng an toàn, có kiểm soát:
 /clean-up-project dry-run
 /clean-up-project apply
 /clean-up-project scope=<repo|worktree|branches|artifacts|logs|dead-code|all>
+/clean-up-project branches
 /clean-up-project workers=<N>
 /clean-up-project --workers <N>
 /clean-up-project --workers=<N>
@@ -145,12 +146,37 @@ Apply rules:
 - `.DS_Store`: được xoá sau xác nhận.
 - `*.bundle`: move ra ngoài repo, không xoá.
 
-### 5. Merged temp branches
+### 5. Merged temp branches — mode `branches` (trước đây skill `git-cleanup-branch`)
 
-Không tự implement — logic dọn branch nằm DUY NHẤT ở skill `/git-cleanup-branch` (protected hard-block, whitelist `feat/` `fix/` `hotfix/` `chore/` `refactor/`, age guard 24h, confirm `[a]ll / [s]elect / [n]one`, `git branch -d` không bao giờ `-D`, remote delete best-effort chỉ remote chính (`$R`)).
+Audit branch đã merge + worktree stale, chỉ xoá những gì user xác nhận. Chạy khi `scope=branches` hoặc "clean up merged branches", "prune worktrees", /clean-up-project branches (tên cũ /git-cleanup-branch). Là nguồn logic DUY NHẤT dọn branch; scope `all` cũng đi qua mục này.
 
-- Dry-run: chỉ liệt kê candidate từ `git branch --merged` vào báo cáo, category `branches`, action = `chạy /git-cleanup-branch`.
-- Apply: gọi `/git-cleanup-branch`, KHÔNG chạy `git branch -d` / `git push $R --delete` trực tiếp từ skill này.
+**5.1 Xác định remote chính + default branch.** Resolve remote chính (`$R`):
+
+```sh
+b=$(git branch --show-current)
+R=$(git config --get "branch.$b.remote" 2>/dev/null || true)
+[ "$R" = "." ] && R=
+[ -z "$R" ] && git remote | grep -qx origin && R=origin
+[ -z "$R" ] && [ "$(git remote | wc -l | tr -d ' ')" = 1 ] && R=$(git remote)
+[ -z "$R" ] && echo "STOP: không xác định được remote chính — hỏi user" >&2
+```
+
+Chạy `git symbolic-ref refs/remotes/$R/HEAD` và lấy basename (vd `main`). Nếu lệnh fail (không có remote tracking ref), hỏi user branch nào là default — không đoán giữa `main`/`master`.
+
+**5.2 Liệt kê merge candidate.** Chạy `git branch --merged <default>`. Với mỗi candidate, check:
+
+- **PROTECTED (HARD BLOCK, không bao giờ đề xuất xoá):** `main`, `master`, `stable`, `prod`, `develop`, `backup`, và branch đang checkout hiện tại. Loại hoàn toàn khỏi candidate list.
+- **Prefix hợp lệ:** `feat/`, `fix/`, `chore/`, `refactor/`, `hotfix/`. Branch ngoài các prefix này đã merge nhưng không tự động đề xuất — liệt kê riêng dạng "merged, outside cleanup whitelist" và để user quyết.
+- **Age guard:** bỏ qua (liệt kê là "too recent") branch nào có commit cuối dưới 24h — check bằng `git log -1 --format=%cr <branch>`.
+- Branch nào thực sự chưa merge (`git branch --merged` đã filter sẵn, nhưng double check ở setup detached-HEAD mơ hồ) giữ ngoài deletable list.
+
+**5.3 Worktree stale.** Chạy `git worktree list`. Đánh dấu entry nào trỏ tới thư mục không còn tồn tại hoặc branch đã bị xoá. Đề xuất `git worktree prune` cho các case này — lệnh này chỉ xoá registration stale, không đụng thư mục có nội dung thật, nên rủi ro thấp, nhưng vẫn hỏi trước khi chạy (cùng quy tắc mục 4 cho orphan dir).
+
+**5.4 Trình bày + xác nhận.** Hiện 3 nhóm: (a) branch prefix hợp lệ an toàn để xoá, (b) branch đã merge ngoài whitelist (chỉ thông tin, không đề xuất xoá), (c) worktree entry stale. Hỏi user `[a]ll / [s]elect / [n]one` trước khi xoá bất kỳ gì trong nhóm (a). Không bao giờ xoá mà chưa có xác nhận này, và không bao giờ đụng branch nhóm (b). Dry-run: chỉ ghi candidate vào báo cáo, category `branches`, không xoá.
+
+**5.5 Xoá branch đã xác nhận.** Với mỗi branch đã xác nhận: `git branch -d <branch>` (chỉ safe delete). Nếu git từ chối vì unmerged, DỪNG, báo branch đó, và KHÔNG force bằng `-D` — quyết định đó thuộc về user, không phải mode này. Sau đó thử cleanup remote, best-effort, chỉ remote chính (`$R`): `git push $R --delete <branch>`. Nếu fail (branch đã mất, vấn đề permission, v.v), log warning và tiếp tục — không fail toàn bộ run vì một lần xoá remote lỗi.
+
+**5.6 Report.** Liệt kê những gì đã xoá (local + remote), những gì bị skip và lý do (age, unmerged, ngoài whitelist), và worktree nào đã prune.
 
 ### 6. Stale logs
 
